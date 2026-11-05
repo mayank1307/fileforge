@@ -1,6 +1,6 @@
 {
   "name": "fileforge-mcp-server",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Your agent watches your signed-in Chrome across tabs, sweeps your routes, and hands you the bug report. Local MCP server plus Chrome extension.",
   "mcpName": "io.github.mayank1307/fileforge",
   "license": "MIT",

@@ -1,6 +1,7 @@
 import { registry } from '../registry.js';
 import { collectCapture, openInstrumentedTab } from '../utils/browserCaptureUtils.js';
 import { maybeStoreResult } from '../utils/resultUtils.js';
+import { redactSensitiveTabData } from '../utils/privacyUtils.js';
 
 // ─── Query Context Constants ──────────────────────────────────────────────────
 
@@ -21,7 +22,6 @@ const ALLOWED_WHERE_FILTERS = new Set([
 ]);
 const ALLOWED_QUERY_SECTIONS = new Set(['activeTab', 'tabs', 'windows', 'summary', 'privacy']);
 
-const SENSITIVE_URL_RE = /\/(login|signin|sign-in|auth|oauth|checkout|payment|billing|account|settings|password|reset|token)/i;
 const SOCIAL_URL_RE = /\b(instagram\.com|facebook\.com|twitter\.com|x\.com|tiktok\.com|snapchat\.com|linkedin\.com|reddit\.com|pinterest\.com)\b/i;
 const SEARCH_URL_RE = /\b(google\.com\/search|bing\.com\/search|duckduckgo\.com|search\.yahoo\.com|ecosia\.org)\b/i;
 const VIDEO_URL_RE = /\b(youtube\.com|youtu\.be|netflix\.com|vimeo\.com|twitch\.tv|hulu\.com|disneyplus\.com)\b/i;
@@ -228,12 +228,6 @@ function projectFields(obj, fields, allowedSet) {
   return result;
 }
 
-function redactSensitiveTabData(tab, redact) {
-  if (!redact || !tab) return tab;
-  if (!tab.url || !SENSITIVE_URL_RE.test(tab.url)) return tab;
-  return { ...tab, url: 'redacted', title: 'redacted', sensitive: true };
-}
-
 function buildSummary(tabs, windows, activeTabId, focusedWindowId, summaryQuery) {
   const include = summaryQuery === true
     ? [...ALLOWED_SUMMARY_FIELDS]
@@ -313,7 +307,8 @@ function resolveBrowserContextQuery(rawData, query) {
   }
 
   if (query.summary != null) {
-    const summaryTabs = result.tabs ?? allTabs;
+    // duplicateUrlGroups prints URLs, so tabs that were never projected into result.tabs need redacting too.
+    const summaryTabs = result.tabs ?? allTabs.map((t) => redactSensitiveTabData(t, redactSensitive));
     result.summary = buildSummary(summaryTabs, allWindows, activeTabId, focusedWindowId, query.summary);
   }
 

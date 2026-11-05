@@ -5,6 +5,7 @@ import { recipeStore } from '../stores/recipeStore.js';
 import { writeExportFile } from '../utils/exportUtils.js';
 import { saveResult } from '../utils/resultUtils.js';
 import { makeActionTool } from '../utils/actionToolUtils.js';
+import { isSensitiveUrl, REDACTED_TAB_VALUE } from '../utils/privacyUtils.js';
 
 const recordings = new Map();
 
@@ -62,7 +63,7 @@ async function runAssertion(rpcClient, assertion, outputs, context = {}) {
     case 'url_contains': {
       const active = dataOf(await rpcClient.send('browser.getActiveTab', {}));
       const href = active?.url ?? '';
-      return { ...assertion, ok: href.includes(assertion.value), actual: href, expected: assertion.value };
+      return { ...assertion, ok: href.includes(assertion.value), actual: isSensitiveUrl(href) ? REDACTED_TAB_VALUE : href, expected: assertion.value };
     }
     case 'selector_visible': {
       const result = dataOf(await rpcClient.send('page.getElementDebugInfo', { tabId, selector: assertion.selector }).catch((err) => ({ error: err.message })));
@@ -258,4 +259,4 @@ const tools = [
 ];
 
 registry.registerMany(tools);
-export { tools };
+export { tools, runAssertion };

@@ -22,7 +22,7 @@ A healthy start prints lines like these within a few seconds (the order can vary
 [fileforge] MCP server ready — extension bridge on ws://127.0.0.1:47821
 [fileforge] extension bridge listening on ws://127.0.0.1:47821
 [fileforge] extension connected (1 client(s))
-[fileforge] extension 0.2.1 matches server version
+[fileforge] extension 0.2.2 matches server version
 [fileforge] ✓ SQLite result store OK
 ```
 
@@ -98,8 +98,8 @@ If **Settings → Pairing** says `not required by this server` when you expected
 The server compares its version with the extension's when the extension connects:
 
 ```
-[fileforge] ⚠️  FileForge extension 0.1.0 does not match server 0.2.1. Reload the extension at chrome://extensions, or update whichever side is older.
-[fileforge] ⚠️  FileForge extension did not report a version, so it is older than the server (0.2.1). Reload it at chrome://extensions.
+[fileforge] ⚠️  FileForge extension 0.1.0 does not match server 0.2.2. Reload the extension at chrome://extensions, or update whichever side is older.
+[fileforge] ⚠️  FileForge extension did not report a version, so it is older than the server (0.2.2). Reload it at chrome://extensions.
 ```
 
 `npm run verify` prints the same text after `[!]`, and `fileforge_runtime_action` → `status` returns it in `warnings`.

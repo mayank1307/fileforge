@@ -2,6 +2,52 @@ const DATA_URL_RE = /^data:([^;,]+)(;base64)?,/i;
 const SECRET_KEY_RE = /(?:authorization|cookie|set-cookie|api[_-]?key|apikey|secret|token|jwt|bearer|private[_-]?key|privatekey|password|passwd|session|csrf|xsrf)/i;
 const SECRET_VALUE_RE = /\b(?:bearer\s+[a-z0-9._~+/=-]{12,}|sk-[a-z0-9_-]{12,}|eyJ[a-z0-9_-]{10,}\.[a-z0-9_-]{10,}\.[a-z0-9_-]{10,})\b/i;
 
+const SENSITIVE_URL_RE = /\/(login|signin|sign-in|auth|oauth|checkout|payment|billing|account|settings|password|reset|token)/i;
+
+export const REDACTED_TAB_VALUE = 'redacted';
+
+// Parameter names, lowercased with dashes as underscores, whose values are credentials or one-time grants.
+const SENSITIVE_PARAM_NAMES = new Set([
+  'access_token', 'api_key', 'apikey', 'assertion', 'auth', 'authorization', 'client_secret', 'code', 'jwt', 'key',
+  'oauth_token', 'oauth_verifier', 'otp', 'passcode', 'passwd', 'password', 'pwd', 'refresh_token', 'samlrequest',
+  'samlresponse', 'secret', 'session', 'session_id', 'sessionid', 'sid', 'sig', 'signature', 'ticket', 'token',
+  'x_amz_credential', 'x_amz_security_token', 'x_amz_signature', 'x_goog_credential', 'x_goog_signature',
+]);
+const SENSITIVE_PARAM_SUFFIX_RE = /_(?:token|secret|password|signature|api_?key)$/;
+// Covers the query string and fragment, since implicit OAuth flows return tokens as #access_token=...
+const URL_PARAM_RE = /[?&#;]([^=&#;?]+)=([^&#;]+)/g;
+const URL_CREDENTIALS_RE = /^[a-z][a-z0-9+.-]*:\/\/[^/?#]*@/i;
+
+function isSensitiveParamName(rawName) {
+  let name = rawName;
+  try {
+    name = decodeURIComponent(rawName);
+  } catch {
+    // Keep the raw name when its percent-encoding is malformed.
+  }
+  name = name.trim().toLowerCase().replace(/-/g, '_');
+  return SENSITIVE_PARAM_NAMES.has(name) || SENSITIVE_PARAM_SUFFIX_RE.test(name);
+}
+
+function hasSecretInUrlParts(url) {
+  if (isDataUrl(url)) return false;
+  if (URL_CREDENTIALS_RE.test(url) || SECRET_VALUE_RE.test(url)) return true;
+  for (const [, name] of url.matchAll(URL_PARAM_RE)) {
+    if (isSensitiveParamName(name)) return true;
+  }
+  return false;
+}
+
+// A heuristic, not a guarantee: it matches sensitive paths, credential parameters, user:pass@ and known token formats.
+export function isSensitiveUrl(url) {
+  return typeof url === 'string' && (SENSITIVE_URL_RE.test(url) || hasSecretInUrlParts(url));
+}
+
+export function redactSensitiveTabData(tab, redact = true) {
+  if (!redact || !tab || !isSensitiveUrl(tab.url)) return tab;
+  return { ...tab, url: REDACTED_TAB_VALUE, title: REDACTED_TAB_VALUE, sensitive: true };
+}
+
 export function isDataUrl(value) {
   return typeof value === 'string' && DATA_URL_RE.test(value);
 }

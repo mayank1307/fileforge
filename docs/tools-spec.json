@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "product": {
     "name": "FileForge",
-    "version": "0.2.1",
+    "version": "0.2.2",
     "description": "Local MCP server and Chrome extension for browser automation, inspection, analysis, and local artifacts."
   },
   "generatedFrom": "mcp-server/src/toolModules.js and the registered tool definitions",

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "FileForge Personal MCP Bridge",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Local MCP bridge giving Claude and other agents real browser context via Chrome APIs and CDP.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuORoxfW216ITPBrz4KdQOxwJ3eNJsSwaWHdqTnJxhSJGYEKTBVVfeN4YsePn00YGZAlAnzW0xzER4kAIutO1BJREd6NleXTPOAhdKFQoV94RRU7w5PYaaoalfLZXG2MeBWKk9/IN4IP4Anolb/AxWBQ5T8ey8PI4DziAxVMRh46CDAbbsA8Csl1J6O2DQ+kbDFNgvILQus8KGwWz0/8I40Bxw2YjaLB9bol7ebUxtH7lY8RwcxAACfCZcXWDWZecIwfR4KukmX4OrocezVpTkNe2x5HtdUkBtl4DFBgIHPOU0+wuJ4o3QpcSEIw8UzL5RVEW/XiIGTMaUrWpEpewsQIDAQAB",
 

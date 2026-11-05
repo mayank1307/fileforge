@@ -151,13 +151,13 @@ npm run verify
 A working install prints:
 
 ```
-FileForge Bridge Verifier (server 0.2.1)
+FileForge Bridge Verifier (server 0.2.2)
 
 [✓] Node.js 22.22.0
 [✓] node_modules present
 [✓] better-sqlite3 loads
 [✓] Extension nlcebipkdgecilmgfpobamljieanadpn connected
-[✓] Extension version 0.2.1 matches the server
+[✓] Extension version 0.2.2 matches the server
 [✓] Chrome is running the extension code on disk
 
 Bridge looks good. Add to Claude config:

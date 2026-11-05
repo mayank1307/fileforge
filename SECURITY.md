@@ -68,6 +68,18 @@ Both return `SECRET_REVEAL_DISABLED` unless the MCP server runs with `FILEFORGE_
 
 Routines (`fileforge_task_action`) can use `{{secret:NAME}}` placeholders. They are filled from `~/.fileforge/secrets.json`, then from the server's environment variables.
 
+## Sensitive URLs
+
+FileForge hides the URL and title of tabs that look sensitive, showing `redacted` in the `_source` block on every response, in `fileforge_browser_action` → `query_context`, and in the `url_contains` workflow assertion. A URL counts as sensitive when it has:
+
+- a sign-in, account, payment or similar path, such as `/login` or `/oauth`
+- a credential parameter in its query string or fragment, such as `?code=`, `#access_token=` or `?api_key=`, or a signed-URL parameter
+- `user:pass@` credentials, or a recognized token format, such as a JWT
+
+This is a heuristic. A secret under an unusual parameter name isn't caught, and common names such as `code` and `key` also hide harmless pages. `query_context` can turn it off with `redactSensitiveUrls: false`.
+
+It doesn't hide a page an agent asks to read. Tools such as `fileforge_scrape_action` and `fileforge_coding_action` → `inspect_page` return that page's content and full URL.
+
 ## Chrome permissions
 
 Every permission the extension requests, the code that uses it and why is listed in [docs/permissions.md](docs/permissions.md). The `debugger` permission is the most powerful: while it is attached, Chrome shows its "started debugging this browser" bar. FileForge attaches it only to the tabs a tool call names, or to every tab when you call `fileforge_eye_action` → `start_watch` with `all: true`.

@@ -200,6 +200,17 @@ test('redactSensitiveTabData: handles null tab', () => {
   assert.equal(redactSensitiveTabData(null, true), null);
 });
 
+test('resolveBrowserContextQuery: duplicateUrlGroups does not list sensitive URLs without a tabs section', () => {
+  const secretUrl = 'https://accounts.google.com/o/oauth2/v2/auth?state=secret-state';
+  const dupes = [{ ...TAB_LOGIN, id: 1, url: secretUrl }, { ...TAB_LOGIN, id: 2, url: secretUrl }];
+  const raw = { tabs: dupes, windows: WINDOWS, activeTabId: 1, focusedWindowId: 1 };
+  const query = { summary: { include: ['duplicateUrlGroups'] } };
+
+  assert.deepEqual(resolveBrowserContextQuery(raw, query).summary.duplicateUrlGroups, []);
+  const optedOut = resolveBrowserContextQuery(raw, { ...query, privacy: { redactSensitiveUrls: false } });
+  assert.equal(optedOut.summary.duplicateUrlGroups[0].url, secretUrl);
+});
+
 // ─── buildSummary ─────────────────────────────────────────────────────────────
 
 test('buildSummary: computes totalTabs and activeTabId', () => {

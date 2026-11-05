@@ -4,6 +4,17 @@ All notable changes to FileForge are listed here. The format follows [Keep a Cha
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-11-05
+
+### Added
+
+- `glama.json`, which names the maintainer for the Glama directory.
+
+### Security
+
+- Sensitive-URL detection now also matches credentials in query strings and fragments (`?code=`, `?access_token=`, `#id_token=`, `?api_key=`, signed-URL parameters), `user:pass@` URLs and known token formats. It applies to `_source`, `query_context` and the `url_contains` assertion. Tabs that only have these in their URL now show as `redacted`.
+- The `_source` block on every tool response copied the active tab's full URL and title even for login, OAuth, payment and other sensitive pages that `query_context` redacts. `active_url`, `active_tab_title` and `data_from_url` now use the same redaction, and `same_origin` is `null` when either URL is redacted. The `url_contains` workflow assertion's `actual` value and `query_context`'s `duplicateUrlGroups` are redacted the same way.
+
 ## [0.2.1] - 2026-11-05
 
 ### Added
@@ -79,6 +90,7 @@ The first public release.
 - Dependencies upgraded past high-severity advisories: `@modelcontextprotocol/sdk` 1.32.2 and `ws` 8.22.1, plus their transitive fixes.
 - zod 4.6.7, past [GHSA-mrhx-c7xc-m3w5](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5). `npm audit --omit=dev` now reports no advisories.
 
-[Unreleased]: https://github.com/mayank1307/fileforge/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/mayank1307/fileforge/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/mayank1307/fileforge/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/mayank1307/fileforge/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/mayank1307/fileforge/releases/tag/v0.2.0

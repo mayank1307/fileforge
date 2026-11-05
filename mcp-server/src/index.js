@@ -12,6 +12,7 @@ import { runQueue } from './queue/runQueue.js';
 import { cronScheduler } from './schedulers/cronScheduler.js';
 import { secretStore } from './stores/secretStore.js';
 import { SERVER_VERSION } from './version.js';
+import { buildSourceBlock } from './utils/sourceBlock.js';
 
 // Register all tool modules
 import './toolModules.js';
@@ -43,40 +44,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   const result = await registry.call(name, params ?? {}, { rpcClient });
 
-  // --------------- Enrich every response with source provenance ---------------
-  // This block lets AI agents immediately understand:
-  //   • Where the data came from  (data_from_url / data_from_tab)
-  //   • What the user was looking at  (active_url / active_tab_title)
-  //   • When and how the call was made  (timestamp / tool / params)
-  //   • Whether the result was persisted  (stored / ref)
-  //   • System health  (bridge_connected)
-  const dataUrl = result?.meta?.url ?? params?.url ?? null;
-  result._source = {
-    tool: name,
-    timestamp: callTimestamp,
-    // The URL the AI/user was viewing when the call was made
-    active_url: activeTab?.url ?? null,
-    active_tab_title: activeTab?.title ?? null,
-    active_tab_id: activeTab?.id != null ? String(activeTab.id) : null,
-    // The URL the returned data actually describes (may differ from active)
-    data_from_url: dataUrl,
-    data_from_tab: params?.tabId ?? 'active',
-    // Did this come from the same page the user is on?
-    same_origin: (() => {
-      try {
-        if (!activeTab?.url || !dataUrl) return null;
-        return new URL(activeTab.url).origin === new URL(dataUrl).origin;
-      } catch { return null; }
-    })(),
-    // Quick param summary so the agent sees what was requested
-    params_provided: Object.keys(params ?? {}),
-    // Storage provenance
-    stored: Boolean(result?.ref),
-    ref: result?.ref ?? null,
-    project: params?.project ?? result?.meta?.project ?? 'default',
-    // System health
-    bridge_connected: activeTab !== null,
-  };
+  result._source = buildSourceBlock({ tool: name, timestamp: callTimestamp, params, result, activeTab });
 
   return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
 });

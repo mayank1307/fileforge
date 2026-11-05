@@ -32,7 +32,7 @@ FileForge is two programs on one machine: a Node.js MCP server and a Chrome exte
 4. `wsServer.js` sends `{ type: 'fileforge-mcp-rpc', requestId, method, params }` to the extension and waits up to 30 seconds for a reply with the same `requestId`.
 5. `mcpRpcRouter.js` splits `devtools.getConsole` into a module (`devtools`) and a method (`getConsole`), runs it, and sends the result back.
 6. The tool module shapes the result into the common response (`{ ok, data, summary, warnings, meta }`). Large results are stored in `~/.fileforge/results.db` and returned as a `ref`, which `fileforge_result_action` and `fileforge_sql_action` can read later.
-7. `index.js` adds a `_source` block (active tab, URL the data came from, whether it was stored) and returns the JSON to the client.
+7. `index.js` adds a `_source` block (active tab, URL the data came from, whether it was stored; sensitive URLs and titles are redacted as in `query_context`) and returns the JSON to the client.
 
 Some tools never reach the extension: `fileforge_sql_action`, `fileforge_note_action` and `fileforge_result_action` work only on local data.
 
