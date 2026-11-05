@@ -1,0 +1,135 @@
+#!/usr/bin/env node
+// Must stay the first import: it exits with a fix if better-sqlite3 was built for another Node.
+import './startupCheck.js';
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { registry } from './registry.js';
+import { rpcClient } from './rpcClient.js';
+import { wsServer, WS_PORT } from './wsServer.js';
+import { capabilityCatalog } from './planner/capabilityCatalog.js';
+import { runQueue } from './queue/runQueue.js';
+import { cronScheduler } from './schedulers/cronScheduler.js';
+import { secretStore } from './stores/secretStore.js';
+import { SERVER_VERSION } from './version.js';
+
+// Register all tool modules
+import './toolModules.js';
+
+const STDIN_CLOSED_EXIT_MS = 500;
+
+const server = new Server(
+  { name: 'fileforge', version: SERVER_VERSION },
+  { capabilities: { tools: {} } }
+);
+
+server.setRequestHandler(ListToolsRequestSchema, async () => ({
+  tools: registry.listTools(),
+}));
+
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  const { name, arguments: params } = request.params;
+  const callTimestamp = new Date().toISOString();
+
+  // Best-effort: grab active tab context before the call so we know the
+  // browser state at invocation time. This is a fast Chrome API round-trip
+  // and is silently skipped if the bridge is down.
+  let activeTab = null;
+  try {
+    const tabResponse = await rpcClient.send('browser.getActiveTab', {});
+    const d = tabResponse?.data ?? tabResponse;
+    if (d && !d.error) activeTab = d;
+  } catch { /* bridge may not be connected — that's fine */ }
+
+  const result = await registry.call(name, params ?? {}, { rpcClient });
+
+  // --------------- Enrich every response with source provenance ---------------
+  // This block lets AI agents immediately understand:
+  //   • Where the data came from  (data_from_url / data_from_tab)
+  //   • What the user was looking at  (active_url / active_tab_title)
+  //   • When and how the call was made  (timestamp / tool / params)
+  //   • Whether the result was persisted  (stored / ref)
+  //   • System health  (bridge_connected)
+  const dataUrl = result?.meta?.url ?? params?.url ?? null;
+  result._source = {
+    tool: name,
+    timestamp: callTimestamp,
+    // The URL the AI/user was viewing when the call was made
+    active_url: activeTab?.url ?? null,
+    active_tab_title: activeTab?.title ?? null,
+    active_tab_id: activeTab?.id != null ? String(activeTab.id) : null,
+    // The URL the returned data actually describes (may differ from active)
+    data_from_url: dataUrl,
+    data_from_tab: params?.tabId ?? 'active',
+    // Did this come from the same page the user is on?
+    same_origin: (() => {
+      try {
+        if (!activeTab?.url || !dataUrl) return null;
+        return new URL(activeTab.url).origin === new URL(dataUrl).origin;
+      } catch { return null; }
+    })(),
+    // Quick param summary so the agent sees what was requested
+    params_provided: Object.keys(params ?? {}),
+    // Storage provenance
+    stored: Boolean(result?.ref),
+    ref: result?.ref ?? null,
+    project: params?.project ?? result?.meta?.project ?? 'default',
+    // System health
+    bridge_connected: activeTab !== null,
+  };
+
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+});
+
+const transport = new StdioServerTransport();
+await server.connect(transport);
+console.error(`[fileforge] MCP server ready — extension bridge on ws://127.0.0.1:${WS_PORT}`);
+
+// A client that quits doesn't always kill us, and the open bridge would keep this process alive and holding
+// the port, so an updated server could never take over. The short wait lets replies already written reach the pipe.
+let exiting = false;
+function exitWithClient() {
+  if (exiting) return;
+  exiting = true;
+  console.error('[fileforge] MCP client closed stdin; exiting');
+  setTimeout(() => process.exit(0), STDIN_CLOSED_EXIT_MS);
+}
+process.stdin.once('end', exitWithClient);
+process.stdin.once('close', exitWithClient);
+
+wsServer.setExtensionRequestHandler(async ({ tool, params }) => {
+  return registry.call(tool, params ?? {}, { rpcClient });
+});
+
+// Build capability catalog after all tool modules have registered.
+capabilityCatalog.refresh();
+
+// Ensure secrets.json exists with safe permissions (best-effort).
+try { secretStore.ensureFile(); } catch { /* non-fatal */ }
+
+// Configure the routine queue with the registry that wraps every tool call,
+// then start the cron scheduler.
+const routineRegistryAdapter = {
+  call: (name, params) => registry.call(name, params ?? {}, { rpcClient }),
+};
+runQueue.configure({ registry: routineRegistryAdapter });
+cronScheduler.start();
+
+// Startup health check — surface infra problems immediately rather than at first tool call.
+setTimeout(async () => {
+  // 1. Verify WebSocket server bound successfully.
+  if (wsServer.mode === 'peer') {
+    console.error('[fileforge] ✓ Forwarding extension RPC through existing bridge owner');
+  } else if (wsServer.connectedCount === 0) {
+    console.error('[fileforge] ⚠️  No extension connected yet. Open Chrome with the FileForge extension loaded.');
+  }
+
+  // 2. Verify SQLite stores are writable.
+  try {
+    const { resultStore } = await import('./stores/resultStore.js');
+    resultStore.list({ limit: 1 });
+    console.error('[fileforge] ✓ SQLite result store OK');
+  } catch (err) {
+    console.error('[fileforge] ✗ SQLite result store FAILED:', err.message);
+  }
+}, 2000);

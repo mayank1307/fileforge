@@ -1,0 +1,69 @@
+{
+  "name": "fileforge-mcp-server",
+  "version": "0.2.0",
+  "description": "Local MCP server for the FileForge Chrome extension bridge",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mayank1307/fileforge.git",
+    "directory": "mcp-server"
+  },
+  "homepage": "https://github.com/mayank1307/fileforge#readme",
+  "bugs": {
+    "url": "https://github.com/mayank1307/fileforge/issues"
+  },
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "chrome-extension",
+    "devtools",
+    "browser-automation",
+    "claude"
+  ],
+  "type": "module",
+  "bin": {
+    "fileforge-mcp": "./src/index.js",
+    "fileforge-verify": "./src/scripts/verify-bridge.js",
+    "fileforge-pair": "./src/scripts/pair.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test",
+    "lint": "eslint src ../examples ../extension",
+    "verify": "node src/scripts/verify-bridge.js",
+    "docs:tools": "node src/scripts/generate-tools-doc.js",
+    "build:id": "node src/scripts/generate-build-id.js",
+    "pair": "node src/scripts/pair.js",
+    "prepack": "node src/scripts/pack-extension.js copy",
+    "postpack": "node src/scripts/pack-extension.js clean"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "better-sqlite3": "^12.9.0",
+    "cron-parser": "^5.5.0",
+    "ws": "^8.22.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.5",
+    "globals": "^17.14.0",
+    "prettier": "^3.2.5"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "files": [
+    "src",
+    "!src/**/*.test.js",
+    "!src/toolsDoc.js",
+    "!src/scripts/generate-*.js",
+    "!src/scripts/pack-extension.js",
+    "extension",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

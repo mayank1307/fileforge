@@ -1,0 +1,54 @@
+# Node
+node_modules/
+npm-debug.log*
+.npm
+
+# Build outputs
+dist/
+build/
+*.crx
+*.pem
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Storage / runtime data
+.fileforge/
+*.sqlite
+*.sqlite3
+*.db
+
+# Screenshot baselines
+baselines/
+exports/
+screenshots/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+logs/
+*.log
+
+# Local MCP client config (machine-specific paths)
+.codex/
+
+# Beta tester reports (testers' personal details; never commit)
+beta-feedback/
+
+# Launch post drafts (kept out of the repo)
+launch/
+
+# Copies made by prepack for npm pack/publish (removed again by postpack)
+mcp-server/extension/
+mcp-server/LICENSE
