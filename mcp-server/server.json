@@ -1,0 +1,22 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.mayank1307/fileforge",
+  "title": "FileForge Browser DevTools",
+  "description": "Browser DevTools for agents in your signed-in Chrome: cross-tab watching, route sweeps, bug reports.",
+  "repository": {
+    "url": "https://github.com/mayank1307/fileforge",
+    "source": "github",
+    "subfolder": "mcp-server"
+  },
+  "version": "0.2.1",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "fileforge-mcp-server",
+      "version": "0.2.1",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

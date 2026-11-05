@@ -1,46 +1,78 @@
 # FileForge
 
-Give your AI agent a real DevTools seat in your own signed-in Chrome.
+Your agent watches your signed-in Chrome across tabs, sweeps your routes, and hands you the bug report.
 
-<!-- TODO: record a 30-second demo (agent opens a page, reads console errors and network calls, fixes a bug) and save it as docs/assets/demo.gif, then uncomment the next line. -->
+<!-- TODO: record the demo in launch/demo-script.md, save it as docs/assets/demo.gif, then uncomment the next line. -->
 <!-- ![FileForge demo](docs/assets/demo.gif) -->
 
-FileForge is a local MCP server plus a Chrome extension. Your MCP client (Claude Code, Claude Desktop, Codex, Cursor) talks to the server over stdio; the server talks to the extension over a WebSocket on `127.0.0.1`; the extension drives your tabs through Chrome APIs and the DevTools Protocol.
+FileForge is a local MCP server plus a Chrome extension. It works with Claude Code, Claude Desktop, Codex and Cursor. Your client talks to the server over stdio, the server talks to the extension over a WebSocket on `127.0.0.1`, and the extension uses Chrome APIs and the DevTools Protocol.
 
-## How it differs from Playwright-based MCP servers
+## What your agent can do
 
-Playwright-based servers usually drive a browser they launch themselves, with a separate profile. FileForge works in the Chrome you already use:
+- **Watch several tabs at once.** Follow network traffic, console errors, JS exceptions and DOM changes across tabs, and set tripwires such as `status >= 500` to check later.
+- **Sweep your routes.** One call visits a list of routes and returns console errors, failed API calls, and accessibility and layout issues for each.
+- **Get coding context for a page.** One call returns the framework, selectors, forms, console, network and performance.
+- **Hand you the evidence.** Generate bug reports, PR evidence bundles and debug bundles, or export captured API calls as curl, Postman or MSW mocks.
+- **Come back to earlier results.** Audits, route sweeps and scrapes are saved in SQLite under `~/.fileforge/`, where the agent can read them with SQL later. It can also compare two audit runs. Scraped links and tables get their own tables.
+- **Repeat the work.** Record a browser workflow and replay it, or schedule a routine.
 
-- **Your real sessions.** The agent sees the tabs you have open, already signed in to your apps, staging sites and dashboards. No re-logging in, no copied cookies.
-- **DevTools data, not just the DOM.** Console logs, JS errors, network requests and response bodies, performance traces, accessibility trees, screenshots and visual diffs.
-- **All local.** The server, the bridge and the extension run on your machine. Results are stored in SQLite under `~/.fileforge/` and can be queried with SQL.
-- **Complements your test runner.** FileForge is for an agent looking at a live page. Keep Playwright, Cypress or Vitest for your test suite.
+All of this runs in the Chrome you already use, signed in to your own apps and staging sites.
+
+## Try these prompts
+
+Open a page you're working on, then ask your agent:
+
+```text
+Use FileForge to show the console errors and failed network requests on my active tab, then find the likely cause in this repo.
+```
+
+```text
+Use FileForge to sweep /, /pricing and /settings on http://localhost:3000 and list the console errors and failed API calls for each route.
+```
+
+```text
+Use FileForge to watch my open tabs and set a tripwire for status >= 500. I'll click around. When I say done, tell me what fired and which request caused it, then write a bug report.
+```
+
+## How it compares
+
+Reaching your signed-in browser is no longer unique to FileForge. These are the differences as of November 2026, from each project's own docs:
+
+| | FileForge | [Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp) | [Playwright MCP](https://github.com/microsoft/playwright-mcp) |
+| --- | --- | --- | --- |
+| Use your signed-in browser | Extension, connected whenever the server runs | `--autoConnect`, after enabling remote debugging in Chrome | `--extension`, choosing a tab to connect |
+| Install | npm, plus an unpacked extension | `npx`, no extension | `npx`, plus a Chrome Web Store extension for your signed-in browser |
+| Cross-tab watching and tripwires | Yes | Not in its tool reference | Not in its docs |
+| Route sweep in one call | Yes | Not in its tool reference | Not in its docs |
+| Bug report and PR evidence bundles | Yes | Not in its tool reference | Not in its docs |
+| SQL over saved results | Yes | Not in its tool reference | Not in its docs |
+| Heap snapshots and Lighthouse | No | Yes | Not in its docs |
+| Browsers | Chrome | Chrome | Chrome, Edge, Firefox, WebKit |
+| Maintained by | One independent developer | Google's Chrome DevTools team | Microsoft |
+
+**Pick Chrome DevTools MCP** for memory leaks, Lighthouse audits or an install with no extension. **Pick Playwright MCP** to automate other browsers or generate tests. **Pick FileForge** when an agent should keep an eye on several tabs, check many routes, and produce evidence you can keep. It complements Playwright, Cypress and Vitest; keep those for your test suite.
+
+**Context cost:** the tool list is about 12,000 tokens (26 tools, roughly 46 KB of schemas), which your client may load at the start of a session. If that matters, compare it with your other servers before leaving it on all the time.
 
 ## Quickstart
 
-You need Node.js 20 or newer and Google Chrome. Full instructions for every client and OS are in [docs/setup.md](docs/setup.md), which also covers [installing from npm](docs/setup.md#install-from-npm).
-
-**1. Install the server**
+You need Node.js 20 or newer and Google Chrome.
 
 ```bash
-git clone https://github.com/mayank1307/fileforge.git
-cd fileforge/mcp-server
-npm install
+npm install -g fileforge-mcp-server
 ```
-
-**2. Load the extension**
-
-Open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and pick the `extension/` folder of your clone.
-
-**3. Add the MCP config**
-
-For Claude Code, using the absolute path of your clone:
 
 ```bash
-claude mcp add fileforge -- node /absolute/path/to/fileforge/mcp-server/src/index.js
+fileforge-setup
 ```
 
-Then start a session and ask the agent to call `fileforge_runtime_action` with `action: "status"`. It should report the extension as connected. Run `npm run verify` in `mcp-server/` at any time to check the install.
+`fileforge-setup` prints the extension folder and the exact command or config for each client, using your real paths. It changes nothing unless you pass `--write`. Then:
+
+1. **Load the extension.** Open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and pick the folder it printed. FileForge isn't on the Chrome Web Store.
+2. **Connect your client.** For Claude Code or Codex, run the command it printed. For Cursor or Claude Desktop, run `fileforge-setup --client cursor --write` or `fileforge-setup --client claude-desktop --write`, which keeps your other servers and saves the old file as `.bak`.
+3. **Check it.** With your client open and Chrome running, run `fileforge-verify`, then ask your agent to call `fileforge_runtime_action` with `action: "status"`.
+
+Prefer a clone? Full instructions for every client and OS are in [docs/setup.md](docs/setup.md).
 
 ## Tool groups
 
@@ -69,7 +101,7 @@ For a tool specification page, use [docs/tools-spec.json](docs/tools-spec.json).
 | `fileforge_workflow_action` | Record and replay browser workflows |
 | `fileforge_task_action` | Create, schedule and run multi-step routines |
 | `fileforge_result_action` | Fetch, list, search and slice stored results |
-| `fileforge_sql_action` | List, describe and query stored data with SQL |
+| `fileforge_sql_action` | List, describe and query saved results and scraped data with SQL |
 | `fileforge_search_action` | Search saved pages, notes, history and bookmarks |
 | `fileforge_memory_action` | Save pages, diff them against earlier visits, search memory |
 | `fileforge_note_action` | Local notes |

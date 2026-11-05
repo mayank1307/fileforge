@@ -1,7 +1,8 @@
 {
   "name": "fileforge-mcp-server",
-  "version": "0.2.0",
-  "description": "Local MCP server for the FileForge Chrome extension bridge",
+  "version": "0.2.1",
+  "description": "Your agent watches your signed-in Chrome across tabs, sweeps your routes, and hands you the bug report. Local MCP server plus Chrome extension.",
+  "mcpName": "io.github.mayank1307/fileforge",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -24,6 +25,8 @@
   "type": "module",
   "bin": {
     "fileforge-mcp": "./src/index.js",
+    "fileforge-mcp-server": "./src/index.js",
+    "fileforge-setup": "./src/scripts/setup.js",
     "fileforge-verify": "./src/scripts/verify-bridge.js",
     "fileforge-pair": "./src/scripts/pair.js"
   },
@@ -35,6 +38,7 @@
     "docs:tools": "node src/scripts/generate-tools-doc.js",
     "build:id": "node src/scripts/generate-build-id.js",
     "pair": "node src/scripts/pair.js",
+    "setup": "node src/scripts/setup.js",
     "prepack": "node src/scripts/pack-extension.js copy",
     "postpack": "node src/scripts/pack-extension.js clean"
   },

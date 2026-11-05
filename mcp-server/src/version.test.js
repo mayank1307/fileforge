@@ -13,6 +13,16 @@ test('extension manifest and server share one version', () => {
   assert.equal(manifest.version, SERVER_VERSION);
 });
 
+test('server.json matches package.json for the MCP Registry', () => {
+  const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  const server = JSON.parse(readFileSync(new URL('../server.json', import.meta.url), 'utf8'));
+  assert.equal(server.name, pkg.mcpName);
+  assert.equal(server.version, pkg.version);
+  assert.equal(server.packages[0].identifier, pkg.name);
+  assert.equal(server.packages[0].version, pkg.version);
+  assert.ok(server.description.length <= 100, 'the registry caps description at 100 characters');
+});
+
 test('no warning when extension and server versions match', () => {
   assert.equal(extensionVersionWarning('0.2.0', '0.2.0'), null);
 });

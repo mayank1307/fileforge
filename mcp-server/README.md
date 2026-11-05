@@ -1,6 +1,6 @@
 # fileforge-mcp-server
 
-The MCP server for [FileForge](https://github.com/mayank1307/fileforge), which gives your AI agent a real DevTools seat in your own signed-in Chrome. This package also contains the FileForge Chrome extension, which you load unpacked from the package folder.
+The MCP server for [FileForge](https://github.com/mayank1307/fileforge). Your agent watches your signed-in Chrome across tabs, sweeps your routes, and hands you the bug report. This package also contains the FileForge Chrome extension, which you load unpacked from the package folder.
 
 You need Node.js 20 or newer and Google Chrome.
 
@@ -12,25 +12,23 @@ npm install -g fileforge-mcp-server
 
 Install it globally, not with `npx`: Chrome loads the extension from the package folder, so the folder must stay put.
 
-## Load the extension
-
-Print the folder:
+## Set it up
 
 ```bash
-echo "$(npm root -g)/fileforge-mcp-server/extension"
+fileforge-setup
 ```
 
-Open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and pick that folder. The card should show ID `nlcebipkdgecilmgfpobamljieanadpn`.
+This prints the extension folder and the exact command or config for each MCP client, using your real paths. It changes nothing unless you pass `--write`.
 
-## Add it to your MCP client
+Open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and pick the folder it printed. The card should show ID `nlcebipkdgecilmgfpobamljieanadpn`.
 
-For Claude Code:
+Then connect your client. For Claude Code or Codex, run the command it printed. For Cursor or Claude Desktop, let it edit the config file; it keeps your other servers and saves the old file as `.bak`:
 
 ```bash
-claude mcp add fileforge -- fileforge-mcp
+fileforge-setup --client cursor --write
 ```
 
-For clients that need a full command, find it with `which fileforge-mcp`. Every client is covered in the [setup guide](https://github.com/mayank1307/fileforge/blob/main/docs/setup.md#install-from-npm).
+Every client is covered in the [setup guide](https://github.com/mayank1307/fileforge/blob/main/docs/setup.md#install-from-npm).
 
 ## Verify
 

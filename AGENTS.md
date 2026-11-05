@@ -22,7 +22,7 @@ mcp-server/
     planner/ queue/ runner/ schedulers/   routines for fileforge_task_action
     utils/            shared helpers (makeActionTool, result storage, privacy redaction, ...)
     scripts/          verify-bridge.js (npm run verify), generate-tools-doc.js (npm run docs:tools),
-                      generate-build-id.js (npm run build:id), pair.js (npm run pair),
+                      generate-build-id.js (npm run build:id), pair.js (npm run pair), setup.js (npm run setup),
                       pack-extension.js (prepack/postpack: puts extension/ in the npm package)
     toolsDoc.js       renders docs/tools.md from the registry
 

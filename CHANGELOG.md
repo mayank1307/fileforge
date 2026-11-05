@@ -4,6 +4,14 @@ All notable changes to FileForge are listed here. The format follows [Keep a Cha
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-05
+
+### Added
+
+- `fileforge-setup` (`npm run setup`) prints the extension folder and each MCP client's config with this install's real paths. With `--client cursor|claude-desktop --write` it adds FileForge to that client's config file, keeping other servers and saving the old file as `.bak`.
+- `mcp-server/server.json` and `mcpName`, for listing on the official MCP Registry.
+- A `fileforge-mcp-server` command, the same as `fileforge-mcp`, so `npx fileforge-mcp-server` can start the server. Clients that install from the registry run it this way.
+
 ## [0.2.0] - 2026-11-04
 
 The first public release.
@@ -71,5 +79,6 @@ The first public release.
 - Dependencies upgraded past high-severity advisories: `@modelcontextprotocol/sdk` 1.32.2 and `ws` 8.22.1, plus their transitive fixes.
 - zod 4.6.7, past [GHSA-mrhx-c7xc-m3w5](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5). `npm audit --omit=dev` now reports no advisories.
 
-[Unreleased]: https://github.com/mayank1307/fileforge/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/mayank1307/fileforge/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/mayank1307/fileforge/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/mayank1307/fileforge/releases/tag/v0.2.0

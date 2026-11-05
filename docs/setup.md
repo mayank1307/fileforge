@@ -151,13 +151,13 @@ npm run verify
 A working install prints:
 
 ```
-FileForge Bridge Verifier (server 0.2.0)
+FileForge Bridge Verifier (server 0.2.1)
 
 [✓] Node.js 22.22.0
 [✓] node_modules present
 [✓] better-sqlite3 loads
 [✓] Extension nlcebipkdgecilmgfpobamljieanadpn connected
-[✓] Extension version 0.2.0 matches the server
+[✓] Extension version 0.2.1 matches the server
 [✓] Chrome is running the extension code on disk
 
 Bridge looks good. Add to Claude config:
@@ -180,31 +180,29 @@ The npm package contains both the server and the extension. Install it globally,
 npm install -g fileforge-mcp-server
 ```
 
-This puts three commands on your `PATH`: `fileforge-mcp` starts the server, `fileforge-verify` is the same check as `npm run verify`, and `fileforge-pair` prints the token for [pairing](#pairing).
+This puts these commands on your `PATH`: `fileforge-setup` prints your setup steps, `fileforge-mcp` starts the server (`fileforge-mcp-server` is the same command), `fileforge-verify` is the same check as `npm run verify`, and `fileforge-pair` prints the token for [pairing](#pairing).
 
-**Load the extension.** Print the folder (on Windows, run `npm root -g` and add `\fileforge-mcp-server\extension`):
-
-```bash
-echo "$(npm root -g)/fileforge-mcp-server/extension"
-```
-
-Then follow [step 3](#3-load-the-extension) with that folder.
-
-**Add it to your MCP client.** Claude Code and Codex can start the `fileforge-mcp` command:
+**Print your steps:**
 
 ```bash
-claude mcp add fileforge -- fileforge-mcp
+fileforge-setup
+```
+
+It prints the extension folder and each client's command or config using your real paths, and changes nothing. From a clone, use `npm run setup` in `mcp-server/`.
+
+**Load the extension** from the folder it printed, following [step 3](#3-load-the-extension).
+
+**Add it to your MCP client.** For Claude Code and Codex, run the command it printed; it uses full paths, so it avoids [the node-path pitfall](#the-node-path-pitfall). For Cursor and Claude Desktop, have it edit the config file:
+
+```bash
+fileforge-setup --client cursor --write
 ```
 
 ```bash
-codex mcp add fileforge -- fileforge-mcp
+fileforge-setup --client claude-desktop --write
 ```
 
-Claude Desktop and Cursor do not read your shell's `PATH` (see [the node-path pitfall](#the-node-path-pitfall)), so give them the full Node path from `which node` as `command`, and the server entry point as `args`:
-
-```bash
-echo "$(npm root -g)/fileforge-mcp-server/src/index.js"
-```
+It keeps your other servers and any `env` you set on FileForge, and saves the old file as `<file>.bak`. It leaves a file it can't parse unchanged and prints the entry to add yourself. `--client` works without `--write` to show only that client.
 
 **Verify** with your MCP client open and Chrome running:
 
