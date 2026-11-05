@@ -88,7 +88,8 @@ const actionDefs = [
 const tools = [
   makeActionTool({
     name: 'fileforge_sql_action',
-    description: 'List, describe, query, and export SQL-backed FileForge data.',
+    description: 'Query FileForge\'s stored results with SELECT-only SQL. Use list_tables and describe_table to see the schema, query to read rows, and export_query to write rows to a file. Covers saved results and scraped pages, links and tables, not the live browser. Use fileforge_result_action to fetch a single known ref. Works without the extension.',
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     prefix: 'fileforge_sql_',
     actions: actionDefs,
   }),

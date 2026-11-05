@@ -805,7 +805,8 @@ const visualCapabilities = {
 const tools = [
   makeActionTool({
     name: 'fileforge_visual_action',
-    description: 'Capture, compare, inspect, and export visual browser artifacts.',
+    description: 'Capture and compare how pages look: screenshots of a page, element or region, baselines, visual diffs across routes and viewports, and computed CSS, colors and fonts. Use fileforge_responsive_action to find layout bugs. Files and baselines are saved locally. capture_screenshot needs the tab to be visible. Needs the extension.',
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     prefix: 'fileforge_visual_',
     actions: actionDefs,
     capabilities: visualCapabilities,

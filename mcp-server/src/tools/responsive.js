@@ -42,7 +42,8 @@ const responsiveCapabilities = {
 const tools = [
   {
     name: 'fileforge_responsive_action',
-    description: 'Scan layout and find responsive issues across widths.',
+    description: 'Find layout bugs across screen widths: scan a URL, and locate overflow and overlapping elements. capture_matrix takes a screenshot at each viewport. Use fileforge_visual_action to compare screenshots against baselines. Loads the page in your session and can store results; it doesn\'t change the site. Needs the extension.',
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     capabilities: responsiveCapabilities,
     inputSchema: {
       type: 'object',
@@ -50,7 +51,6 @@ const tools = [
         action: {
           type: 'string',
           enum: ['scan_layout', 'find_overflow', 'find_overlaps', 'capture_matrix'],
-          description: 'The responsive action to perform.'
         },
         url: { type: 'string' },
         widths: { type: 'array', items: { type: 'number' }, description: 'Viewport widths to test' },

@@ -83,7 +83,8 @@ const actionDefs = [
 const tools = [
   makeActionTool({
     name: 'fileforge_runtime_action',
-    description: 'Runtime health, status, capabilities, and request log actions.',
+    description: 'Check FileForge itself: whether the server and extension are connected, their versions, which tools are available, and recent requests. Use status when other tools report a bridge or connection error. It doesn\'t touch page content.',
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     prefix: 'fileforge_runtime_',
     actions: actionDefs,
   }),

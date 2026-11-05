@@ -2,6 +2,7 @@
 // wsServer.js, so rendering does not open the bridge port.
 import './toolModules.js';
 import { registry } from './registry.js';
+import { actionEntries } from './utils/actionToolUtils.js';
 
 export const TOOLS_DOC_URL = new URL('../../docs/tools.md', import.meta.url);
 
@@ -36,22 +37,10 @@ function paramDescription(schema = {}) {
   return parts.join(' ');
 }
 
-// Per-action descriptions come from makeActionTool's catalog, or else from the tool's capabilities.
-function actionRows(tool) {
-  const names = tool.inputSchema?.properties?.action?.enum ?? [];
-  const catalog = new Map((tool.actions ?? []).map((entry) => [entry.action, entry]));
-  const capabilities = registry.getCapabilities(tool.name)?.actions ?? {};
-  return names.map((name) => ({
-    name,
-    description: catalog.get(name)?.description ?? capabilities[name]?.description ?? '',
-    required: catalog.get(name)?.required ?? [],
-  }));
-}
-
 function renderTool(tool) {
   const lines = [`## ${tool.name}`, '', inline(tool.description), '', '### Actions', ''];
-  for (const action of actionRows(tool)) {
-    let line = `- ${code(action.name)}`;
+  for (const action of actionEntries(tool)) {
+    let line = `- ${code(action.action)}`;
     if (action.description) line += `: ${inline(action.description)}`;
     if (action.required.length) line += ` Requires ${action.required.map(code).join(', ')}.`;
     lines.push(line);
@@ -73,17 +62,17 @@ function renderTool(tool) {
 
 export function renderToolsDoc() {
   const tools = registry.listToolDefs().slice().sort((a, b) => a.name.localeCompare(b.name));
-  const actionCount = tools.reduce((sum, tool) => sum + actionRows(tool).length, 0);
+  const actionCount = tools.reduce((sum, tool) => sum + actionEntries(tool).length, 0);
   const lines = [
     '# Tool reference',
     '',
     '<!-- Generated from the tool registry by `npm run docs:tools` in mcp-server/. Do not edit by hand. -->',
     '',
-    `FileForge registers ${tools.length} tools with ${actionCount} actions in all. Every tool takes a required \`action\` parameter that picks what it does; the other parameters apply to the actions that use them. An unknown or missing \`action\` falls back to the closest match, or to the first action, and the response's \`warnings\` say so.`,
+    `FileForge registers ${tools.length} tools with ${actionCount} actions in all. Every tool takes a required \`action\` parameter that picks what it does; the other parameters apply to the actions that use them. A missing or unknown \`action\` returns an \`UNKNOWN_ACTION\` error and runs nothing; only differences in case or punctuation are forgiven, with a warning.`,
     '',
     '| Tool | Actions | Description |',
     '| --- | --- | --- |',
-    ...tools.map((tool) => `| [${tool.name}](#${tool.name}) | ${actionRows(tool).length} | ${inline(tool.description)} |`),
+    ...tools.map((tool) => `| [${tool.name}](#${tool.name}) | ${actionEntries(tool).length} | ${inline(tool.description)} |`),
     '',
     ...tools.map(renderTool),
   ];

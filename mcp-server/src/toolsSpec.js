@@ -1,6 +1,7 @@
 // Import definitions, never the server entry point or WebSocket listener.
 import './toolModules.js';
 import { registry } from './registry.js';
+import { TOOL_OUTPUT_SCHEMA } from './utils/toolResponse.js';
 import { SERVER_VERSION } from './version.js';
 
 export const TOOLS_SPEC_URL = new URL('../../docs/tools-spec.json', import.meta.url);
@@ -74,6 +75,7 @@ export function buildToolsSpec() {
       description: tool.description,
       documentationAnchor: `tools.md#${tool.name}`,
       inputSchema: tool.inputSchema,
+      outputSchema: TOOL_OUTPUT_SCHEMA,
       capabilities: tool.capabilities ?? null,
       features: actions.map(({ name, description }) => ({ action: name, description })),
       actionCount: actions.length,
@@ -92,7 +94,7 @@ export function buildToolsSpec() {
       inputSchemas: 'Schemas preserve registered definitions, including defaults, enums, nested properties, and constraints. Defaults are documentation and are applied by individual handlers, not uniformly by the registry.',
       missingMetadata: 'null means metadata is not declared; it does not mean no risk, no permissions, or no output.',
       requestTemplates: 'Schematic tools/call payloads, without a JSON-RPC envelope. Replace <parameter> placeholders with values of the declared type and satisfy handler-specific requirements before use.',
-      outputSchemas: 'Action-specific output schemas are not declared in the registry. The shared response format is descriptive, not an enforced output contract. Examples are illustrative, not captured live results.',
+      outputSchemas: 'Every tool declares the shared outputSchema, which only requires ok. Action-specific output schemas are not declared. Examples are illustrative, not captured live results.',
       permissions: 'Capability permission identifiers are FileForge policy flags, not Chrome manifest permission names. See docs/permissions.md for Chrome permissions.',
     },
     transport: {

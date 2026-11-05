@@ -9,7 +9,7 @@ import { maybeStoreResult } from '../utils/resultUtils.js';
 import { discoverRoutesFromPages, summarizeRouteChecks } from '../utils/routeAuditUtils.js';
 import { normalizeUrl, resolveUrl } from '../utils/urlUtils.js';
 import { makeActionTool } from '../utils/actionToolUtils.js';
-import { handleQueryAudit, handleCompareAuditSnapshots, normalizeActionName as normalizeAuditActionName, PRESETS as AUDIT_PRESETS } from './auditQuery.js';
+import { handleQueryAudit, handleCompareAuditSnapshots, normalizeActionName as normalizeAuditActionName, PRESETS as AUDIT_PRESETS, QUERY_MODULES } from './auditQuery.js';
 
 function dataOf(response) {
   return response?.data ?? response;
@@ -107,7 +107,7 @@ const actionDefs = [
       properties: {
         target: { type: 'object' },
         preset: { type: 'string', enum: Object.keys(AUDIT_PRESETS) },
-        query: { type: 'object' },
+        query: { type: 'object', description: `Modules to return and their options. Takes priority over preset. Modules: ${[...QUERY_MODULES].join(', ')}.` },
         tabId: { type: 'string' },
       },
     },
@@ -376,13 +376,15 @@ const auditCapabilities = {
 
 const baseAuditTool = makeActionTool({
   name: 'fileforge_audit_action',
-  description: 'Unified audit tool. Primary action: query_audit (GraphQL-feel modules + presets). Also: compare_audit_snapshots, plus legacy route/content/policy/security/recommendation/comparison/export/summary actions.',
+  description: 'Audit a page or site for SEO, content, policy and client-side security issues. Prefer query_audit with a preset; compare_runs shows what changed between stored audits. Use fileforge_a11y_action, fileforge_perf_action or fileforge_responsive_action for one focused check. reveal_client_security_value needs FILEFORGE_ALLOW_SECRET_REVEAL=1. Results can be stored. Needs the extension.',
+  annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
   actions: actionDefs,
   capabilities: auditCapabilities,
 });
 
 const auditTool = {
   ...baseAuditTool,
+  normalizeAction: normalizeAuditActionName,
   handler: (params = {}, ctx) => baseAuditTool.handler({ ...params, action: normalizeAuditActionName(params.action) }, ctx),
 };
 

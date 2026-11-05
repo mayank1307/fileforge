@@ -56,7 +56,8 @@ const actionDefs = [
 const tools = [
   makeActionTool({
     name: 'fileforge_note_action',
-    description: 'Create, list, and search local notes.',
+    description: 'Keep local notes: create, list and search them. Use this to save findings across sessions. Use fileforge_memory_action to save page content and fileforge_report_action for shareable evidence. Notes stay in ~/.fileforge, and there\'s no update or delete action.',
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     prefix: 'fileforge_note_',
     actions: actionDefs,
   }),

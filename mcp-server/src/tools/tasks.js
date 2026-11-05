@@ -169,8 +169,6 @@ const actionDefs = [
         url: { type: 'string', description: 'Optional starting URL' },
         mode: { type: 'string', enum: ['interactive', 'collector', 'monitor'], default: 'interactive' },
         maxMinutes: { type: 'number', default: 10 },
-        outputs: { type: 'array', items: { type: 'object' } },
-        export: { type: 'array', items: { type: 'string' } },
         capture: { type: 'array', items: { type: 'string' } },
         recipeName: { type: 'string', description: 'Saved workflow recipe to run asynchronously.' },
         recipe: { type: 'object', description: 'Inline workflow recipe to save and run asynchronously.' },
@@ -449,7 +447,8 @@ const actionDefs = [
 const tools = [
   makeActionTool({
     name: 'fileforge_task_action',
-    description: 'Create, run, schedule, plan, inspect, validate, dry-run, and export FileForge routines (and legacy task pipelines).',
+    description: 'Run multi-step work two ways. Tasks (start, add, status, monitor_page) track one job. Routines (create, validate, dry_run, run, plan_from_prompt) are saved and can be scheduled, but cron only fires while this server runs. For a single step, call the tool directly. Runs act in your browser, pausing only at steps that require approval. delete removes a task; routines can only be disabled.',
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
     prefix: 'fileforge_task_',
     actions: [...actionDefs, ...routineActionDefs],
   }),

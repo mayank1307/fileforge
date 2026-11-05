@@ -131,7 +131,8 @@ const searchCapabilities = {
 const tools = [
   makeActionTool({
     name: 'fileforge_search_action',
-    description: 'Search across saved pages, results, notes, browser history, and bookmarks.',
+    description: 'Search local data by text: saved pages, stored results, notes, browser history and bookmarks. Use all to search everything, or narrow it to one source. Use fileforge_memory_action to compare page visits and fileforge_scrape_action to read a live page. History and bookmarks need the extension.',
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     prefix: 'fileforge_search_',
     actions: actionDefs,
     capabilities: searchCapabilities,

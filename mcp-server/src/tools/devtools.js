@@ -5,6 +5,7 @@ import { sanitizeHar, summarizeHar } from '../utils/privacyUtils.js';
 import { makeActionTool } from '../utils/actionToolUtils.js';
 import {
   handleQueryDevtools,
+  QUERY_MODULES,
   normalizeActionName,
   PRESETS as DEVTOOLS_PRESETS,
   validateEvaluate,
@@ -29,7 +30,7 @@ const actionDefs = [
       properties: {
         tabId: { type: 'string', default: 'active' },
         preset: { type: 'string', enum: Object.keys(DEVTOOLS_PRESETS) },
-        query: { type: 'object' },
+        query: { type: 'object', description: `Modules to return and their options. Takes priority over preset. Modules: ${[...QUERY_MODULES].join(', ')}.` },
         autoStartSession: { type: 'boolean' },
         captureForMs: { type: 'number' },
         stopAfterCapture: { type: 'boolean' },
@@ -95,7 +96,7 @@ const actionDefs = [
       if (op === 'clear') return { ok: true, data: await rpcClient.send('devtools.clearSession', p), meta: metaFor('session', { operation: op }) };
       // status — probe via getConsole
       const probe = await rpcClient.send('devtools.getConsole', p).catch(() => null);
-      const active = !!probe?.ok;
+      const active = !!probe?.ok && probe.data?.sessionActive !== false;
       return { ok: true, data: { active, tabId: p.tabId ?? 'active' }, meta: metaFor('session', { operation: op }) };
     },
   },
@@ -275,13 +276,15 @@ const devtoolsCapabilities = {
 
 const baseDevtoolsTool = makeActionTool({
   name: TOOL_NAME,
-  description: 'Unified DevTools tool. Primary action: query_devtools (GraphQL-feel modules + presets). Plus session lifecycle, evaluate, replay_request, export_har, and legacy get_* read actions.',
+  description: 'Read DevTools data for a tab, from the moment a session starts: console, JS errors, network requests, API responses, WebSockets and performance. Prefer query_devtools with a preset; the get_* actions are older. Attaches the debugger, so Chrome shows its debugging bar. evaluate runs JavaScript in the page and replay_request re-sends a request; both can change data and have guards. Needs the extension.',
+  annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
   actions: actionDefs,
   capabilities: devtoolsCapabilities,
 });
 
 const devtoolsTool = {
   ...baseDevtoolsTool,
+  normalizeAction: normalizeActionName,
   handler: (params = {}, ctx) => baseDevtoolsTool.handler({ ...params, action: normalizeActionName(params.action) }, ctx),
 };
 

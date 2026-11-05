@@ -18,7 +18,18 @@ function diffText(previous, current) {
 const tools = [
   {
     name: 'fileforge_memory_action',
-    description: 'Manage local page memory, diffing, and result slicing.',
+    actions: [
+      { action: 'save_page', description: "Save the text of a tab's page to local memory.", required: [] },
+      { action: 'query', description: 'Search saved pages by keyword.', required: ['query'] },
+      { action: 'semantic_search', description: 'Run the same keyword search as query. Embeddings are not configured.', required: ['query'] },
+      { action: 'answer', description: "Return saved pages relevant to a question as evidence. It doesn't write an answer.", required: ['question'] },
+      { action: 'find_previous_visit', description: 'Find the saved copy of a URL.', required: ['url'] },
+      { action: 'diff_page', description: "Compare a tab's text with a stored result (ref) or the page's saved copy. Stores the diff by default.", required: [] },
+      { action: 'compact_result', description: 'Summarize a stored result.', required: ['ref'] },
+      { action: 'get_result_slice', description: 'Read part of a stored result using offset and limit.', required: ['ref'] },
+    ],
+    description: 'Remember pages over time: save a page, find earlier visits, diff it against a previous visit, and search saved pages or pull evidence for a question. Use this to see what changed on a page. Use fileforge_result_action to read tool results and fileforge_search_action to search history. Data stays in ~/.fileforge. save_page and diff_page need the extension.',
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     inputSchema: {
       type: 'object',
       properties: {
@@ -29,7 +40,6 @@ const tools = [
             'find_previous_visit', 'diff_page', 'compact_result', 
             'get_result_slice'
           ],
-          description: 'The memory action to perform.'
         },
         tabId: { type: 'string', default: 'active' },
         project: { type: 'string', default: 'default' },

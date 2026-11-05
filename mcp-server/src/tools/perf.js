@@ -40,7 +40,8 @@ const perfCapabilities = {
 const tools = [
   {
     name: 'fileforge_perf_action',
-    description: 'Run performance audits and collect metrics.',
+    description: 'Run a performance audit on a URL across viewports and return Core Web Vitals. Use this for a performance check of one page. Use fileforge_devtools_action for raw session data and fileforge_audit_action for SEO, content and security. Loads the URL in its own tab, closes it afterward, and stores the result by default. It doesn\'t change the site. Needs the extension.',
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     capabilities: perfCapabilities,
     inputSchema: {
       type: 'object',
@@ -48,7 +49,6 @@ const tools = [
         action: {
           type: 'string',
           enum: ['audit'],
-          description: 'The performance action to perform.'
         },
         url: { type: 'string' },
         viewports: { type: 'array', items: { type: 'string', enum: ['desktop', 'tablet', 'mobile'] }, default: ['desktop', 'mobile'] },

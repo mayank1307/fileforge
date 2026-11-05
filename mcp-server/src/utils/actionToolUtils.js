@@ -51,46 +51,57 @@ function normalizeActionKey(value) {
   return String(value ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '');
 }
 
-function resolveAction(actionMap, normalizedActions, requestedAction) {
-  if (!requestedAction) {
-    return {
-      action: normalizedActions[0],
-      warning: `No action provided; defaulted to "${normalizedActions[0].action}".`,
-      requestedAction,
-    };
-  }
-
-  const direct = actionMap.get(requestedAction);
-  if (direct) return { action: direct };
-
+// Returns the action a request names, ignoring case and punctuation, or undefined. It never guesses further: a near
+// miss could be a different state-changing action, so callers must reject anything this doesn't match.
+export function matchAction(availableActions, requestedAction) {
+  if (availableActions.includes(requestedAction)) return requestedAction;
   const requestedKey = normalizeActionKey(requestedAction);
-  const fuzzy = normalizedActions.find((item) => normalizeActionKey(item.action) === requestedKey)
-    ?? (() => {
-      const contains = normalizedActions.filter((item) => {
-        const actionKey = normalizeActionKey(item.action);
-        return requestedKey.includes(actionKey) || actionKey.includes(requestedKey);
-      });
-      return contains.length === 1 ? contains[0] : undefined;
-    })();
-  if (fuzzy) {
-    return {
-      action: fuzzy,
-      warning: `Unknown action "${requestedAction}"; matched "${fuzzy.action}".`,
-      requestedAction,
-    };
-  }
+  if (!requestedKey) return undefined;
+  return availableActions.find((action) => normalizeActionKey(action) === requestedKey);
+}
 
+export function unknownActionError(tool, requestedAction, availableActions) {
+  const list = availableActions.join(', ');
+  const message = requestedAction
+    ? `Unknown action "${requestedAction}" for ${tool}. Nothing was run. Available actions: ${list}.`
+    : `No action provided for ${tool}. Nothing was run. Available actions: ${list}.`;
   return {
-    action: normalizedActions[0],
-    warning: `Unknown action "${requestedAction}"; defaulted to "${normalizedActions[0].action}".`,
-    requestedAction,
+    ok: false,
+    error: { code: 'UNKNOWN_ACTION', message, details: { requestedAction, availableActions } },
+    meta: { tool },
   };
 }
 
-function describeActions(actions) {
-  return actions
-    .map((action) => `${action.action}: ${action.description}`)
-    .join(' ');
+// One entry per action, from the tool's own catalog or else its capabilities.
+export function actionEntries(tool) {
+  const names = tool.inputSchema?.properties?.action?.enum ?? [];
+  const catalog = new Map((tool.actions ?? []).map((entry) => [entry.action, entry]));
+  const capabilities = tool.capabilities?.actions ?? {};
+  return names.map((action) => {
+    const capability = capabilities[action];
+    const required = catalog.get(action)?.required
+      ?? Object.entries(capability?.params ?? {}).filter(([, param]) => param.required).map(([param]) => param);
+    return {
+      action,
+      description: catalog.get(action)?.description ?? capability?.description ?? '',
+      required: required.filter((param) => param !== 'action'),
+    };
+  });
+}
+
+// Every parameter sits in one flat schema, so the action list is where an agent learns what each action does and needs.
+export function withActionCatalog(tool) {
+  const actionSchema = tool.inputSchema?.properties?.action;
+  if (!actionSchema?.enum) return tool;
+  const lines = actionEntries(tool).map(({ action, description, required }) => {
+    const signature = required.length ? `${action} (${required.join(', ')})` : action;
+    return description ? `${signature}: ${description}` : signature;
+  });
+  const properties = {
+    ...tool.inputSchema.properties,
+    action: { ...actionSchema, description: `What to do. Required parameters are in brackets. ${lines.join(' ')}` },
+  };
+  return { ...tool, inputSchema: { ...tool.inputSchema, properties } };
 }
 
 function buildCapabilities(name, normalizedActions) {
@@ -110,17 +121,19 @@ function buildCapabilities(name, normalizedActions) {
   return { tool: name, actions: actionsCaps };
 }
 
-export function makeActionTool({ name, description, actions, prefix, capabilities }) {
+export function makeActionTool({ name, description, annotations, actions, prefix, capabilities }) {
   const normalizedActions = actions.map((action) => ({
     ...action,
     action: action.action ?? deriveActionName(action.name, prefix),
   }));
   const actionMap = new Map(normalizedActions.map((action) => [action.action, action]));
+  const actionNames = normalizedActions.map((action) => action.action);
   const aggregatedCapabilities = capabilities ?? buildCapabilities(name, normalizedActions);
 
   return {
     name,
     description,
+    annotations,
     capabilities: aggregatedCapabilities,
     actions: actionCatalog(normalizedActions),
     // Documentation metadata only; keep the runtime action catalog compact.
@@ -131,26 +144,26 @@ export function makeActionTool({ name, description, actions, prefix, capabilitie
         action: {
           type: 'string',
           enum: normalizedActions.map((item) => item.action),
-          description: `The action to perform. Available actions: ${describeActions(normalizedActions)}`,
         },
         ...mergeActionProperties(normalizedActions),
       },
       required: ['action'],
     },
     handler: async (params = {}, ctx) => {
-      const resolved = resolveAction(actionMap, normalizedActions, params.action);
-      const action = resolved.action;
+      const actionName = matchAction(actionNames, params.action);
+      if (!actionName) return unknownActionError(name, params.action, actionNames);
+      const action = actionMap.get(actionName);
       const resolvedParams = { ...params, action: action.action };
       requireActionParams(action, resolvedParams);
       const result = normalizeActionResult(await action.handler(resolvedParams, ctx), name, action.action);
       const meta = {
         ...(result.meta ?? {}),
-        requestedAction: resolved.requestedAction,
-        availableActions: actionCatalog(normalizedActions),
+        requestedAction: params.action,
       };
-      if (resolved.warning) meta.actionWarning = resolved.warning;
-      const warnings = resolved.warning ? [resolved.warning, ...(result.warnings ?? [])] : result.warnings;
-      return { ...result, warnings, meta };
+      if (actionName === params.action) return { ...result, meta };
+      const warning = `Unknown action "${params.action}"; matched "${actionName}".`;
+      meta.actionWarning = warning;
+      return { ...result, warnings: [warning, ...(result.warnings ?? [])], meta };
     },
   };
 }

@@ -192,7 +192,7 @@ export async function runRoutine({ runId, registry, abortSignal }) {
       attempt += 1;
       try {
         const t0 = Date.now();
-        const rawResult = await callWithTimeout(() => registry.call(step.tool, resolvedParams, {}), stepTimeout, abortSignal);
+        const rawResult = await callWithTimeout(() => registry.call(step.tool, action ? { ...resolvedParams, action } : resolvedParams, {}), stepTimeout, abortSignal);
         const dur = Date.now() - t0;
         normalized = normalizeToolResult(rawResult, dur);
         if (normalized.success) break;

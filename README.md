@@ -52,7 +52,7 @@ Reaching your signed-in browser is no longer unique to FileForge. These are the 
 
 **Pick Chrome DevTools MCP** for memory leaks, Lighthouse audits or an install with no extension. **Pick Playwright MCP** to automate other browsers or generate tests. **Pick FileForge** when an agent should keep an eye on several tabs, check many routes, and produce evidence you can keep. It complements Playwright, Cypress and Vitest; keep those for your test suite.
 
-**Context cost:** the tool list is about 12,000 tokens (26 tools, roughly 46 KB of schemas), which your client may load at the start of a session. If that matters, compare it with your other servers before leaving it on all the time.
+**Context cost:** the tool list is about 23,000 tokens (26 tools, roughly 93 KB of schemas), which your client may load at the start of a session. If that matters, compare it with your other servers before leaving it on all the time.
 
 ## Quickstart
 
@@ -115,6 +115,7 @@ For a tool specification page, use [docs/tools-spec.json](docs/tools-spec.json).
 - Other local processes need the token in `~/.fileforge/bridge-token`, which only your user can read. Set `FILEFORGE_REQUIRE_PAIRING=1` to require it from the extension too ([pairing](docs/setup.md#pairing)).
 - Everything is stored locally in `~/.fileforge/`. There is no telemetry, and FileForge makes no outbound requests on its own: everything it fetches is a page or URL a tool was asked to load.
 - Tools that would return raw secret values are off unless you set `FILEFORGE_ALLOW_SECRET_REVEAL=1`.
+- `fileforge_file_action` reads local files only from FileForge's output folders and folders you list in `FILEFORGE_ALLOWED_READ_PATHS`, and fetches local or private addresses only for hosts you list in `FILEFORGE_ALLOWED_FETCH_HOSTS`. Browser tools can still open those addresses.
 - The debugger attaches only to the tabs a tool call names (Eye watches every tab only when called with `all: true`), and Chrome shows its "started debugging this browser" bar while it does. Every permission is explained in [docs/permissions.md](docs/permissions.md).
 
 The threat model and how to report a vulnerability are in [SECURITY.md](SECURITY.md).

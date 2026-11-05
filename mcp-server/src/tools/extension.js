@@ -109,7 +109,8 @@ const actionDefs = [
 const tools = [
   makeActionTool({
     name: 'fileforge_extension_action',
-    description: 'Inspect and test Chrome extension manifest, permissions, storage, service worker, injection, and errors.',
+    description: 'Inspect a Chrome extension: manifest, permissions, storage, service worker, content-script injection and errors. Use this to debug an extension you\'re building, and fileforge_audit_action for store policy checks. reveal_storage_value needs FILEFORGE_ALLOW_SECRET_REVEAL=1. Needs the extension.',
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     actions: actionDefs,
   }),
 ];

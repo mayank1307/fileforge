@@ -535,18 +535,27 @@ const accessibilityInspector = {
 };
 
 const responsiveInspector = {
+  // Compares with the viewport, because the body can be narrower than the page when it's a centered column.
   findOverflow() {
-    const bodyWidth = document.body.scrollWidth;
+    const root = document.documentElement;
+    const viewportWidth = root.clientWidth;
+    if (root.scrollWidth <= viewportWidth + 1) return [];
+    const isClipped = (el) => {
+      for (let parent = el.parentElement; parent && parent !== document.body && parent !== root; parent = parent.parentElement) {
+        if (getComputedStyle(parent).overflowX !== 'visible') return true;
+      }
+      return false;
+    };
     const overflow = [];
-    document.querySelectorAll('*').forEach((el) => {
+    document.querySelectorAll('body *').forEach((el) => {
       const rect = el.getBoundingClientRect();
-      if (rect.right > bodyWidth + 1) {
+      if (rect.width > 0 && rect.right > viewportWidth + 1 && !isClipped(el)) {
         overflow.push({
           tag: el.tagName.toLowerCase(),
           id: el.id || undefined,
-          classes: el.className || undefined,
+          classes: el.getAttribute('class') || undefined,
           right: rect.right,
-          bodyWidth,
+          viewportWidth,
         });
       }
     });
@@ -554,7 +563,14 @@ const responsiveInspector = {
   },
 
   findOverlaps() {
-    const elements = Array.from(document.querySelectorAll('*'));
+    // The shapes inside an SVG are meant to overlap, so an SVG counts as one element. Invisible elements, such as a
+    // styled checkbox under its label, can't visibly overlap anything.
+    const isVisible = (el) => {
+      const style = getComputedStyle(el);
+      return style.visibility !== 'hidden' && style.opacity !== '0';
+    };
+    const elements = Array.from(document.querySelectorAll('body *'))
+      .filter((el) => !el.parentElement.closest('svg') && isVisible(el));
     const overlaps = [];
     for (let i = 0; i < elements.length; i++) {
       for (let j = i + 1; j < elements.length; j++) {

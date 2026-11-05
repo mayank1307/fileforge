@@ -67,7 +67,8 @@ const actionDefs = [
 const tools = [
   makeActionTool({
     name: 'fileforge_app_action',
-    description: 'Inspect app framework, routing, client storage, feature flags, and framework-specific state.',
+    description: 'Inspect a web app in an open tab: detect its framework, and read routes, Next.js data, client storage, feature flags and React tree hints. Use this to understand how an app is built. Use fileforge_coding_action for a full bundle. Read-only, but get_client_storage returns raw localStorage and sessionStorage values, which can include tokens. Needs the extension.',
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     prefix: 'fileforge_app_',
     actions: actionDefs,
   }),

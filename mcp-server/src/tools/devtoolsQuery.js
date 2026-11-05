@@ -596,11 +596,9 @@ async function safeRpc(rpcClient, method, params) {
 }
 
 export async function getSessionState(rpcClient, tabId) {
-  // Probe whether session is active by attempting a getConsole. If the RPC
-  // exposes a dedicated probe later we can swap; for now we infer from the
-  // shape returned (entries === undefined means no session).
+  // getConsole succeeds with no session, so the probe relies on the sessionActive flag it returns.
   const probe = await safeRpc(rpcClient, 'devtools.getConsole', { tabId });
-  if (!probe) return { active: false };
+  if (!probe || probe.sessionActive === false) return { active: false };
   return {
     active: true,
     sessionId: `devtools_${createHash('sha1').update(String(tabId ?? 'active')).digest('hex').slice(0, 10)}`,

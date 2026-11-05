@@ -89,7 +89,8 @@ const actionDefs = [
 const tools = [
   makeActionTool({
     name: 'fileforge_result_action',
-    description: 'Retrieve, list, search, and slice stored FileForge results.',
+    description: 'Read results other tools stored in ~/.fileforge: fetch one by ref, list them, search them, or slice a large one. Use this when a tool returns a ref instead of full data. Use fileforge_sql_action to query across results and fileforge_export_action to write one to a file. Works without the extension.',
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     prefix: 'fileforge_result_',
     actions: actionDefs,
   }),

@@ -98,7 +98,8 @@ const actionDefs = [
 const tools = [
   makeActionTool({
     name: 'fileforge_export_action',
-    description: 'Export stored results and SQL query output.',
+    description: 'Write stored results or SQL query output to a file in formats such as CSV, JSON, Markdown, HAR or ZIP. Use this to hand data to another tool. Use fileforge_result_action or fileforge_sql_action to read data without creating a file. Writes only to FileForge\'s exports folder, and a filename you reuse replaces that file.',
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     prefix: 'fileforge_export_',
     actions: actionDefs,
   }),

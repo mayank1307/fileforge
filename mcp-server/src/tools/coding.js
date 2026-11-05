@@ -373,7 +373,8 @@ const actionDefs = [
 const tools = [
   makeActionTool({
     name: 'fileforge_coding_action',
-    description: 'Capture coding-focused page, route, bug, and article context bundles.',
+    description: 'Get context for fixing code in one call. inspect_page returns a page\'s framework, selectors, forms, console, network and performance; audit_routes sweeps many routes for errors; bug_context and article_context gather focused context. Use fileforge_qa_testing for pass/fail checks. Opens pages in your session; results can be stored. Needs the extension.',
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     prefix: 'fileforge_coding_',
     actions: actionDefs,
   }),

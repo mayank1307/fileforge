@@ -1,43 +1,30 @@
+import { describeToolParams } from './utils/paramDescriptions.js';
+import { normalizeToolResponse, TOOL_OUTPUT_SCHEMA } from './utils/toolResponse.js';
+import { matchAction, unknownActionError, withActionCatalog } from './utils/actionToolUtils.js';
+
 const _tools = new Map();
 const _capabilities = new Map();
-
-function normalizeActionKey(value) {
-  return String(value ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '');
-}
 
 function resolveActionParams(tool, params = {}) {
   const actionSchema = tool.inputSchema?.properties?.action;
   const availableActions = Array.isArray(actionSchema?.enum) ? actionSchema.enum : [];
   if (!availableActions.length) return { params, availableActions };
 
-  if (!params.action) {
-    return {
-      params: { ...params, action: availableActions[0] },
-      availableActions,
-      actionWarning: `No action provided; defaulted to "${availableActions[0]}".`,
-      requestedAction: params.action,
-    };
+  const requested = params.action;
+  if (availableActions.includes(requested)) return { params, availableActions };
+
+  // Tools with legacy aliases (such as go_back) resolve them in their own handlers.
+  if (requested && tool.normalizeAction && tool.normalizeAction(requested) !== requested) {
+    return { params, availableActions };
   }
 
-  if (availableActions.includes(params.action)) return { params, availableActions };
-
-  const requestedKey = normalizeActionKey(params.action);
-  const fuzzy = availableActions.find((action) => normalizeActionKey(action) === requestedKey)
-    ?? (() => {
-      const contains = availableActions.filter((action) => {
-        const actionKey = normalizeActionKey(action);
-        return requestedKey.includes(actionKey) || actionKey.includes(requestedKey);
-      });
-      return contains.length === 1 ? contains[0] : undefined;
-    })();
-  const action = fuzzy ?? availableActions[0];
+  const action = matchAction(availableActions, requested);
+  if (!action) return { rejection: unknownActionError(tool.name, requested, availableActions) };
   return {
     params: { ...params, action },
     availableActions,
-    actionWarning: fuzzy
-      ? `Unknown action "${params.action}"; matched "${action}".`
-      : `Unknown action "${params.action}"; defaulted to "${action}".`,
-    requestedAction: params.action,
+    actionWarning: `Unknown action "${requested}"; matched "${action}".`,
+    requestedAction: requested,
   };
 }
 
@@ -56,14 +43,14 @@ function attachActionResolution(result, toolName, resolution) {
       ...(normalized.meta ?? {}),
       tool: normalized.meta?.tool ?? toolName,
       requestedAction: resolution.requestedAction,
-      availableActions: normalized.meta?.availableActions ?? resolution.availableActions,
       actionWarning: resolution.actionWarning,
     },
   };
 }
 
 export const registry = {
-  register(toolDef) {
+  register(rawToolDef) {
+    const toolDef = withActionCatalog(describeToolParams(rawToolDef));
     _tools.set(toolDef.name, toolDef);
     if (toolDef.capabilities) _capabilities.set(toolDef.name, toolDef.capabilities);
   },
@@ -73,10 +60,12 @@ export const registry = {
   },
 
   listTools() {
-    return Array.from(_tools.values()).map(({ name, description, inputSchema }) => ({
+    return Array.from(_tools.values()).map(({ name, description, inputSchema, annotations }) => ({
       name,
       description,
       inputSchema,
+      outputSchema: TOOL_OUTPUT_SCHEMA,
+      ...(annotations ? { annotations } : {}),
     }));
   },
 
@@ -106,8 +95,9 @@ export const registry = {
     }
     try {
       const resolution = resolveActionParams(tool, params ?? {});
+      if (resolution.rejection) return resolution.rejection;
       const result = await tool.handler(resolution.params, ctx);
-      return attachActionResolution(result, name, resolution);
+      return normalizeToolResponse(attachActionResolution(result, name, resolution));
     } catch (err) {
       return {
         ok: false,

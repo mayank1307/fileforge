@@ -22,7 +22,7 @@ A healthy start prints lines like these within a few seconds (the order can vary
 [fileforge] MCP server ready — extension bridge on ws://127.0.0.1:47821
 [fileforge] extension bridge listening on ws://127.0.0.1:47821
 [fileforge] extension connected (1 client(s))
-[fileforge] extension 0.2.2 matches server version
+[fileforge] extension 0.3.0 matches server version
 [fileforge] ✓ SQLite result store OK
 ```
 

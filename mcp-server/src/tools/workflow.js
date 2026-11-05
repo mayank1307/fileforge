@@ -252,7 +252,8 @@ const actionDefs = [
 const tools = [
   makeActionTool({
     name: 'fileforge_workflow_action',
-    description: 'Record, list, run, export, and delete browser workflow recipes.',
+    description: 'Record browser actions as a reusable recipe, then list, replay, export or delete recipes. Use this to repeat a sequence you did by hand. Use fileforge_task_action for scheduled or multi-step routines. Replaying really clicks and types in your signed-in browser, and delete_recipe is permanent. Needs the extension.',
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
     prefix: 'fileforge_workflow_',
     actions: actionDefs,
   }),

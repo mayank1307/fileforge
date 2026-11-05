@@ -132,7 +132,7 @@ export const devtoolsModule = {
   async getConsole({ tabId = 'active' } = {}) {
     const id = await resolveTabId(tabId);
     const session = _sessions.get(id);
-    return { ok: true, data: { tabId: id, entries: session?.console ?? [] } };
+    return { ok: true, data: { tabId: id, sessionActive: Boolean(session), entries: session?.console ?? [] } };
   },
 
   async getJsErrors({ tabId = 'active' } = {}) {

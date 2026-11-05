@@ -10,13 +10,18 @@ function dataOf(response) {
   return response?.data ?? response;
 }
 
-async function queryDevtools(rpcClient, tabId, query) {
-  const response = await handleQueryDevtools({
+// A clean check must fail when there's nothing to read, so this keeps the error instead of returning empty data.
+function readSession(rpcClient, tabId, query) {
+  return handleQueryDevtools({
     action: 'query_devtools',
     tabId,
     autoStartSession: false,
     query,
   }, { rpcClient });
+}
+
+async function queryDevtools(rpcClient, tabId, query) {
+  const response = await readSession(rpcClient, tabId, query);
   return response?.ok ? response : null;
 }
 
@@ -46,8 +51,10 @@ async function checkPage(rpcClient, url, { captureScreenshot = true } = {}) {
       failedRequests: result.issues.filter((issue) => issue.type === 'reliability.failed-request').length,
       performanceIssues: result.performanceAudit.issues.length,
     });
-    result.ok = result.issues.length === 0;
-    result.summary.clean = result.ok;
+    // Whether the page works. Layout signals and blocked analytics are listed but can't fail it on their own, because
+    // they fire on most real pages. summary.clean says whether anything at all was found.
+    result.ok = result.summary.ok;
+    result.summary.clean = result.issues.length === 0;
   } finally {
     await rpcClient.send('devtools.stopSession', { tabId }).catch(() => null);
     await rpcClient.send('browser.closeTab', { tabId }).catch(() => null);
@@ -58,7 +65,19 @@ async function checkPage(rpcClient, url, { captureScreenshot = true } = {}) {
 const tools = [
   {
     name: 'fileforge_qa_testing',
-    description: 'Run QA checks, smoke tests, element watches, and route tests.',
+    actions: [
+      { action: 'run_frontend_check', description: 'Load a page, plus any routes, and list issues on each. Fails on high or critical issues. Stores the result by default.', required: ['url'] },
+      { action: 'run_smoke_test', description: 'Load one page without a screenshot and list issues. Fails on high or critical issues. Stores the result by default.', required: ['url'] },
+      { action: 'check_page_boot', description: 'Load one page and list issues, without storing anything. Fails on high or critical issues.', required: ['url'] },
+      { action: 'check_routes', description: 'Load each route against baseUrl and list issues per route. Fails on high or critical issues.', required: ['baseUrl', 'routes'] },
+      { action: 'check_console_clean', description: 'Pass only if the running DevTools session on a tab has no console issues.', required: [] },
+      { action: 'check_network_clean', description: 'Pass only if the running DevTools session on a tab has no failed requests.', required: [] },
+      { action: 'check_forms', description: 'Report issues in the forms on an open tab.', required: [] },
+      { action: 'watch_element', description: 'Start watching an element for changes and return a watchId.', required: ['selector'] },
+      { action: 'capture_element_change', description: 'Read the changes recorded by watch_element, by watchId or selector. Stores the result by default.', required: [] },
+    ],
+    description: 'Run repeatable pass/fail checks: smoke tests, page boot, routes, console, network, forms and element watches. Use fileforge_page_interaction for individual steps and fileforge_coding_action while fixing code. URL checks load pages in your session. check_console_clean and check_network_clean read a running DevTools session and return SESSION_NOT_STARTED without one. Needs the extension.',
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     inputSchema: {
       type: 'object',
       properties: {
@@ -69,13 +88,10 @@ const tools = [
             'check_routes', 'check_console_clean', 'check_network_clean', 
             'check_forms', 'watch_element', 'capture_element_change'
           ],
-          description: 'The QA action to perform.'
         },
         url: { type: 'string' },
         baseUrl: { type: 'string' },
         routes: { type: 'array', items: { type: 'string' } },
-        viewports: { type: 'array', items: { type: 'string', enum: ['mobile', 'tablet', 'desktop'] } },
-        checks: { type: 'array', items: { type: 'string' } },
         store: { type: 'boolean', default: true },
         tabId: { type: 'string', default: 'active' },
         selector: { type: 'string' },
@@ -105,13 +121,13 @@ const tools = [
             })),
           };
           const stored = maybeStoreResult({ store: p.store ?? true, prefix: 'qa_frontend', tool: 'fileforge_qa_testing_frontend', url: baseUrl, data, summary });
-          return { ok: true, ...stored, meta: { tool: 'fileforge_qa_testing', action: p.action } };
+          return { ...stored, ok: data.ok, meta: { tool: 'fileforge_qa_testing', action: p.action } };
         }
         case 'run_smoke_test': {
           if (!p.url) throw new Error('url is required for run_smoke_test');
           const data = await checkPage(rpcClient, p.url, { captureScreenshot: false });
           const stored = maybeStoreResult({ store: p.store ?? true, prefix: 'qa_smoke', tool: 'fileforge_qa_testing_smoke', url: p.url, data, summary: data.summary });
-          return { ok: true, ...stored, meta: { tool: 'fileforge_qa_testing', action: p.action } };
+          return { ...stored, ok: data.ok, meta: { tool: 'fileforge_qa_testing', action: p.action } };
         }
         case 'check_page_boot': {
           if (!p.url) throw new Error('url is required for check_page_boot');
@@ -125,19 +141,23 @@ const tools = [
           return { ok: checks.every((check) => check.ok), data: { checks }, meta: { tool: 'fileforge_qa_testing', action: p.action } };
         }
         case 'check_console_clean': {
-          const queried = await queryDevtools(rpcClient, p.tabId ?? 'active', { console: true });
-          const entries = queried?.console ?? dataOf(await rpcClient.send('devtools.getConsole', p)).entries ?? [];
+          const queried = await readSession(rpcClient, p.tabId ?? 'active', { console: true });
+          if (!queried.ok) return { ...queried, meta: { tool: 'fileforge_qa_testing', action: p.action } };
+          const entries = queried.console ?? [];
           const issues = issuesFromContext({ console: { entries } });
           return { ok: issues.length === 0, data: { issues, entries }, meta: { tool: 'fileforge_qa_testing', action: p.action } };
         }
         case 'check_network_clean': {
-          const queried = await queryDevtools(rpcClient, p.tabId ?? 'active', { network: true });
-          const requests = queried?.network ?? dataOf(await rpcClient.send('devtools.getNetwork', p)).requests ?? [];
+          const queried = await readSession(rpcClient, p.tabId ?? 'active', { network: true });
+          if (!queried.ok) return { ...queried, meta: { tool: 'fileforge_qa_testing', action: p.action } };
+          const requests = queried.network ?? [];
           const issues = issuesFromContext({ network: { requests } });
           return { ok: issues.length === 0, data: { issues, requests }, meta: { tool: 'fileforge_qa_testing', action: p.action } };
         }
         case 'check_forms': {
-          const data = dataOf(await rpcClient.send('page.getForms', p));
+          const response = await rpcClient.send('page.getForms', p);
+          if (response?.ok === false) return { ...response, meta: { tool: 'fileforge_qa_testing', action: p.action } };
+          const data = dataOf(response);
           const issues = formIssues(data.forms ?? []);
           return { ok: issues.length === 0, data: { forms: data.forms ?? [], issues }, meta: { tool: 'fileforge_qa_testing', action: p.action } };
         }

@@ -4,6 +4,7 @@ import './startupCheck.js';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { toMcpToolResult } from './utils/toolResponse.js';
 import { registry } from './registry.js';
 import { rpcClient } from './rpcClient.js';
 import { wsServer, WS_PORT } from './wsServer.js';
@@ -46,7 +47,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   result._source = buildSourceBlock({ tool: name, timestamp: callTimestamp, params, result, activeTab });
 
-  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+  return toMcpToolResult(result);
 });
 
 const transport = new StdioServerTransport();

@@ -70,6 +70,8 @@ registry.registerMany([
 ]);
 ```
 
+Give each tool an `annotations` object with all four MCP hints, and say in its description when to use it and what it changes. Describe every parameter, or add shared ones to `src/utils/paramDescriptions.js`; `src/utils/toolDefinitions.test.js` enforces this.
+
 Then import the module in `src/toolModules.js` and run `npm run docs:tools`.
 
 ### Common response shape
@@ -81,6 +83,8 @@ Then import the module in `src/toolModules.js` and run `npm run docs:tools`.
 // error
 { ok: false, error: { code: 'ERROR_CODE', message: '...', details: {} }, meta: { tool } }
 ```
+
+`src/utils/toolResponse.js` declares this as every tool's `outputSchema` and returns it as `structuredContent` too. Clients reject a whole call that breaks the schema, so only `ok` is typed.
 
 ### Extension RPC
 

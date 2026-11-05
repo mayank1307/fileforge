@@ -2,11 +2,12 @@ import { registry } from '../registry.js';
 import { mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { homedir } from 'os';
 import { basename, extname, join } from 'path';
-import { fileURLToPath } from 'url';
 import { maybeStoreResult } from '../utils/resultUtils.js';
 import { dataUriSummary, parseDataUri } from '../utils/dataUriUtils.js';
 import { makeActionTool } from '../utils/actionToolUtils.js';
 import { fileforgeUri } from '../utils/fileforgeUri.js';
+import { resolveReadablePath } from '../utils/localFileAccess.js';
+import { safeFetch } from '../utils/safeFetch.js';
 
 const RESOURCE_DIR = join(homedir(), '.fileforge', 'resources');
 const ARTIFACT_DIR = join(homedir(), '.fileforge', 'artifacts');
@@ -20,26 +21,12 @@ function parseCsv(text, delimiter = ',') {
   return body.map((row) => Object.fromEntries(headers.map((header, index) => [header, row[index] ?? ''])));
 }
 
-function pathFromUrl(url) {
-  if (url.startsWith('file://')) return fileURLToPath(url);
-  return url;
-}
-
 async function loadResource(url) {
   if (/^https?:\/\//i.test(url)) {
-    const response = await fetch(url);
-    const buffer = Buffer.from(await response.arrayBuffer());
-    return {
-      buffer,
-      meta: {
-        url: response.url,
-        status: response.status,
-        ok: response.ok,
-        contentType: response.headers.get('content-type') ?? undefined,
-      },
-    };
+    const { buffer, ...meta } = await safeFetch(url);
+    return { buffer, meta };
   }
-  const filePath = pathFromUrl(url);
+  const filePath = resolveReadablePath(url);
   return { buffer: readFileSync(filePath), meta: { url: filePath, contentType: undefined } };
 }
 
@@ -122,7 +109,7 @@ const actionDefs = [
     inputSchema: {
       type: 'object',
       properties: {
-        url: { type: 'string', description: 'URL or local path of the file' },
+        url: { type: 'string', description: 'Public http(s) URL, or a local path in an allowed folder.' },
         from: { type: 'string', description: 'Source format' },
         to: { type: 'string', description: 'Target format' },
       },
@@ -352,7 +339,8 @@ const actionDefs = [
 const tools = [
   makeActionTool({
     name: 'fileforge_file_action',
-    description: 'Fetch, parse, convert, inspect, and decode files and Data URIs.',
+    description: 'Fetch, parse and convert files, extract text, and decode data URIs, including those in a page. Use this for documents and embedded assets, and fileforge_scrape_action for HTML pages. Fetches public URLs without your browser session; private addresses need FILEFORGE_ALLOWED_FETCH_HOSTS. Local paths need the output folders of ~/.fileforge or FILEFORGE_ALLOWED_READ_PATHS. Can write files locally.',
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     prefix: 'fileforge_file_',
     actions: actionDefs,
   }),

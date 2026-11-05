@@ -170,7 +170,8 @@ const actionDefs = [
 const tools = [
   makeActionTool({
     name: 'fileforge_report_action',
-    description: 'Generate bug reports, PR evidence bundles, and full debug bundles.',
+    description: 'Generate evidence bundles from the active tab: a bug report, PR evidence with screenshots and QA results, or a full debug bundle. Use this when you need something to share or attach. Use fileforge_coding_action for context while working. Bundles are saved locally and can contain page data, so review them before sharing. Needs the extension.',
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     prefix: 'fileforge_report_',
     actions: actionDefs,
   }),

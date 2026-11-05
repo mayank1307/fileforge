@@ -17,8 +17,18 @@ function routeUrl(context, fallback) {
   return context?.route?.route?.href ?? context?.route?.url ?? context?.url ?? fallback;
 }
 
+// Requests arrive in two shapes: raw from the extension (response.status, failed) or mapped by query_devtools
+// (status, errorText).
 function requestStatus(request) {
-  return request?.response?.status ?? 0;
+  return request?.response?.status ?? request?.status ?? 0;
+}
+
+function requestError(request) {
+  return request?.failed?.errorText ?? request?.errorText;
+}
+
+function requestFailed(request) {
+  return Boolean(request?.failed || request?.errorText);
 }
 
 function requestUrl(request) {
@@ -35,11 +45,11 @@ function isCriticalAsset(request) {
 
 function severityForRequest(request) {
   const status = requestStatus(request);
-  if (isAnalyticsOrAdRequest(request) && (request.failed || status === 0 || status >= 400)) return 'low';
-  if (status >= 500 || request.failed?.errorText === 'net::ERR_FAILED') return isCriticalAsset(request) ? 'high' : 'medium';
+  if (isAnalyticsOrAdRequest(request) && (requestFailed(request) || status === 0 || status >= 400)) return 'low';
+  if (status >= 500 || requestError(request) === 'net::ERR_FAILED') return isCriticalAsset(request) ? 'high' : 'medium';
   if (isCriticalAsset(request) && status >= 400) return 'high';
   if (status >= 400) return 'medium';
-  return request.failed ? 'medium' : 'low';
+  return requestFailed(request) ? 'medium' : 'low';
 }
 
 function responsiveViewportWidth(item) {
@@ -108,8 +118,8 @@ export function issuesFromContext(context = {}, { url } = {}) {
   const consoleEntries = context.console?.entries ?? [];
   const consoleIssues = consoleEntries.filter((entry) => ['error', 'warning'].includes(entry.level));
   const jsErrors = context.jsErrors?.errors ?? [];
-  const failedRequests = (context.network?.requests ?? []).filter((request) => request.failed || requestStatus(request) >= 400);
-  const apiFailures = (context.apiResponses?.responses ?? []).filter((request) => request.failed || requestStatus(request) >= 400);
+  const failedRequests = (context.network?.requests ?? []).filter((request) => requestFailed(request) || requestStatus(request) >= 400);
+  const apiFailures = (context.apiResponses?.responses ?? []).filter((request) => requestFailed(request) || requestStatus(request) >= 400);
   const contrastIssues = context.a11y?.contrastIssues ?? context.a11y?.data?.contrastIssues ?? [];
   const overflow = context.responsive?.overflow ?? [];
   const overlaps = context.responsive?.overlaps ?? [];
@@ -145,13 +155,13 @@ export function issuesFromContext(context = {}, { url } = {}) {
       impact: isAnalyticsOrAdRequest(request)
         ? 'Analytics or ad requests may be blocked by users or extensions; this is usually low priority unless attribution is a declared goal.'
         : 'Failed requests can break page rendering, data loading, media, or critical user actions.',
-      evidence: [{ url: request.url, method: request.method, status: requestStatus(request) || undefined, text: request.failed?.errorText, raw: request }],
+      evidence: [{ url: request.url, method: request.method, status: requestStatus(request) || undefined, text: requestError(request), raw: request }],
       suggestedFix: 'Fix the failing endpoint or asset reference, remove dead requests, or add graceful fallback behavior.',
     })),
     ...apiFailures.map((request) => createIssue({
       type: 'reliability.api-failure',
       dimension: 'reliability',
-      severity: requestStatus(request) >= 500 || request.failed ? 'high' : 'medium',
+      severity: requestStatus(request) >= 500 || requestFailed(request) ? 'high' : 'medium',
       confidence: 0.94,
       title: requestStatus(request) ? `API call returned ${requestStatus(request)}` : 'API call failed',
       impact: 'API failures often break dynamic content, account flows, checkout, forms, or dashboard data.',

@@ -151,13 +151,13 @@ npm run verify
 A working install prints:
 
 ```
-FileForge Bridge Verifier (server 0.2.2)
+FileForge Bridge Verifier (server 0.3.0)
 
 [✓] Node.js 22.22.0
 [✓] node_modules present
 [✓] better-sqlite3 loads
 [✓] Extension nlcebipkdgecilmgfpobamljieanadpn connected
-[✓] Extension version 0.2.2 matches the server
+[✓] Extension version 0.3.0 matches the server
 [✓] Chrome is running the extension code on disk
 
 Bridge looks good. Add to Claude config:
@@ -221,6 +221,8 @@ Set these in the environment of the MCP server: `-e NAME=value` with `claude mcp
 | Variable | Default | What it does |
 | --- | --- | --- |
 | `FILEFORGE_ALLOW_SECRET_REVEAL` | unset | `1` enables the two actions that return a raw, unredacted storage value (`fileforge_audit_action` → `reveal_client_security_value`, `fileforge_extension_action` → `reveal_storage_value`). |
+| `FILEFORGE_ALLOWED_READ_PATHS` | unset | Absolute folders `fileforge_file_action` may read local files from, separated by `:` (`;` on Windows). FileForge's own output folders are always readable, and the rest of `~/.fileforge` never is. |
+| `FILEFORGE_ALLOWED_FETCH_HOSTS` | unset | Comma-separated hosts `fileforge_file_action` may fetch even though they resolve to a local or private address, such as `localhost:3000` or `wiki.internal`. A host without a port matches every port. |
 | `FILEFORGE_REQUIRE_PAIRING` | unset | `1` makes the extension present the bridge token before the bridge accepts it. See [Pairing](#pairing). |
 | `FILEFORGE_EXTENSION_IDS` | the pinned ID | Comma-separated extension IDs the bridge accepts, replacing the default. Only needed for a fork that ships its own manifest `key`. |
 | `FILEFORGE_WS_PORT` | `47821` | Bridge port. The extension always connects to 47821, so changing this disconnects it. Useful only for running a second, separate server. |

@@ -284,7 +284,8 @@ const actionDefs = [
 const tools = [
   makeActionTool({
     name: TOOL_NAME,
-    description: "God's Eye — cross-tab browser monitoring. Watch chosen tabs, or every open tab with all: true: live network traffic, console errors, JS exceptions, DOM mutations, WebSocket frames. Lock onto a target tab for enhanced capture (auto-screenshots on errors). Plant tripwires that fire silently when conditions hit any tab.",
+    description: 'Monitor many tabs at once: network traffic, console errors, JS exceptions, DOM changes and WebSocket frames. Set tripwires such as "status >= 500", then read get_tripwires; they don\'t notify you. watch_person tags events that mention an identity. Use fileforge_devtools_action for one tab in depth. Attaches the debugger to watched tabs; the incognito actions open and close windows. Needs the extension.',
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
     prefix: `${TOOL_NAME}_`,
     actions: actionDefs,
   }),

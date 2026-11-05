@@ -53,28 +53,28 @@ const pageCapabilities = {
     get_accessibility_tree: { description: 'Get the page accessibility tree.', risk: 'low', flags: { read: true, browser: true, artifact: true } },
     get_interactive_elements: { description: 'List interactive elements on the page.', risk: 'low', flags: { read: true, browser: true } },
     get_forms: { description: 'Extract forms on the page.', risk: 'low', flags: { read: true, browser: true } },
-    wait_for_selector: { description: 'Wait for a selector to appear.', risk: 'low', flags: { browser: true } },
-    click: { description: 'Click a selector.', risk: 'medium', flags: { write: true, browser: true } },
-    fill: { description: 'Fill a form field.', risk: 'medium', flags: { write: true, browser: true } },
+    wait_for_selector: { description: 'Wait for a selector to appear.', params: { selector: { type: 'string', required: true } }, risk: 'low', flags: { browser: true } },
+    click: { description: 'Click a selector.', params: { selector: { type: 'string', required: true } }, risk: 'medium', flags: { write: true, browser: true } },
+    fill: { description: 'Fill a form field.', params: { selector: { type: 'string', required: true }, value: { type: 'string', required: true } }, risk: 'medium', flags: { write: true, browser: true } },
     scroll: { description: 'Scroll the page.', risk: 'low', flags: { browser: true } },
-    reveal: { description: 'Scroll a selector into view.', risk: 'low', flags: { browser: true } },
-    get_element_debug_info: { description: 'Debug info for an element.', risk: 'low', flags: { read: true, browser: true } },
-    hide_elements: { description: 'Hide elements matching selectors.', risk: 'medium', flags: { write: true, browser: true } },
+    reveal: { description: 'Scroll a selector into view.', params: { selector: { type: 'string', required: true } }, risk: 'low', flags: { browser: true } },
+    get_element_debug_info: { description: 'Debug info for an element.', params: { selector: { type: 'string', required: true } }, risk: 'low', flags: { read: true, browser: true } },
+    hide_elements: { description: 'Hide elements matching selectors.', params: { selectors: { type: 'array', required: true } }, risk: 'medium', flags: { write: true, browser: true } },
     restore_hidden_elements: { description: 'Restore previously hidden elements.', risk: 'low', flags: { write: true, browser: true } },
     extract_article: { description: 'Extract the article-style main content.', risk: 'low', flags: { read: true, browser: true, artifact: true } },
     compare_visible_vs_article: { description: 'Compare visible text against extracted article.', risk: 'low', flags: { read: true, browser: true } },
     // QA / debugging
-    assert: { description: 'Run assertions against page state (url, title, text, selectors, inputs).', risk: 'low', flags: { read: true, browser: true } },
+    assert: { description: 'Run assertions against page state (url, title, text, selectors, inputs).', params: { assertions: { type: 'array', required: true } }, risk: 'low', flags: { read: true, browser: true } },
     smoke_test: { description: 'Quick health check: loaded, text, interactives, errors, images, layout.', risk: 'low', flags: { read: true, browser: true } },
     find_errors: { description: 'Find visible error text patterns on the page.', risk: 'low', flags: { read: true, browser: true } },
     check_broken_images: { description: 'Detect broken or unloaded images.', risk: 'low', flags: { read: true, browser: true } },
     check_links: { description: 'Inspect all anchor links for missing hrefs, javascript:, external, etc.', risk: 'low', flags: { read: true, browser: true } },
     check_layout: { description: 'Detect layout issues: overflow, zero-size clickables, overlapping elements, modals.', risk: 'low', flags: { read: true, browser: true } },
-    debug_selector: { description: 'Debug a CSS selector: match count, visibility, alternatives, warnings.', risk: 'low', flags: { read: true, browser: true } },
-    debug_clickability: { description: 'Check why an element can or cannot be clicked.', risk: 'low', flags: { read: true, browser: true } },
+    debug_selector: { description: 'Debug a CSS selector: match count, visibility, alternatives, warnings.', params: { selector: { type: 'string', required: true } }, risk: 'low', flags: { read: true, browser: true } },
+    debug_clickability: { description: 'Check why an element can or cannot be clicked.', params: { selector: { type: 'string', required: true } }, risk: 'low', flags: { read: true, browser: true } },
     capture_debug_bundle: { description: 'One-call diagnostic bundle: page info, errors, layout, images, links, screenshot.', risk: 'low', flags: { read: true, browser: true, artifact: true } },
     wait_for_page_change: { description: 'Poll until page state changes (url, title, text, elements) or timeout.', risk: 'low', flags: { browser: true } },
-    compare_snapshots: { description: 'Compare two stored page state snapshots by stateId.', risk: 'low', flags: { read: true } },
+    compare_snapshots: { description: 'Compare two stored page state snapshots by stateId.', params: { beforeStateId: { type: 'string', required: true }, afterStateId: { type: 'string', required: true } }, risk: 'low', flags: { read: true } },
   },
 };
 
@@ -83,7 +83,9 @@ const pageCapabilities = {
 const tools = [
   {
     name: 'fileforge_page_interaction',
-    description: 'Interact with the DOM, extract page info, run QA checks, and debug failures (click, fill, assert, smoke_test, debug_clickability, capture_debug_bundle, etc.)',
+    normalizeAction: normalizeActionName,
+    description: 'Read and act inside one open page: get text, snapshots and forms, click, fill, scroll, assert, and debug selectors. click and fill act on the real signed-in page, so they can submit or change data. hide_elements lasts until restore_hidden_elements. Use fileforge_qa_testing for repeatable checks across pages and fileforge_scrape_action for structured extraction. Needs the extension.',
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
     capabilities: pageCapabilities,
     inputSchema: {
       type: 'object',
@@ -103,7 +105,6 @@ const tools = [
             'debug_selector', 'debug_clickability',
             'capture_debug_bundle', 'wait_for_page_change', 'compare_snapshots',
           ],
-          description: 'The page action to perform.',
         },
 
         // ── shared ────────────────────────────────────────────────────────

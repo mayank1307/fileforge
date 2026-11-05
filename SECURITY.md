@@ -68,6 +68,14 @@ Both return `SECRET_REVEAL_DISABLED` unless the MCP server runs with `FILEFORGE_
 
 Routines (`fileforge_task_action`) can use `{{secret:NAME}}` placeholders. They are filled from `~/.fileforge/secrets.json`, then from the server's environment variables.
 
+## Local files
+
+`fileforge_file_action` reads local paths only from `exports`, `resources` and `artifacts` in `~/.fileforge`, plus any folders listed in `FILEFORGE_ALLOWED_READ_PATHS`. Everything else returns `LOCAL_PATH_NOT_ALLOWED`, whether or not the file exists. Symlinks are followed before the check, and the rest of `~/.fileforge`, which holds the bridge token and `secrets.json`, stays unreadable even if a parent folder is listed. Hard links can't be detected, and a listed folder is readable by any agent using the tool, including one following a prompt injection.
+
+The same action fetches http(s) URLs from the server process. Loopback, private, link-local (including cloud metadata), reserved and multicast addresses return `URL_NOT_ALLOWED` unless the host is listed in `FILEFORGE_ALLOWED_FETCH_HOSTS`. The address is checked when the connection is made, which covers DNS rebinding, and on every redirect.
+
+This limits the server, not the browser. An agent can still open `localhost` or an internal site in a tab and read it, because testing those pages is much of what FileForge is for. `find_openapi_specs` on `fileforge_api_action` also still sends `HEAD` requests to the open tab's origin.
+
 ## Sensitive URLs
 
 FileForge hides the URL and title of tabs that look sensitive, showing `redacted` in the `_source` block on every response, in `fileforge_browser_action` → `query_context`, and in the `url_contains` workflow assertion. A URL counts as sensitive when it has:

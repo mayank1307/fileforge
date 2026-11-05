@@ -2,7 +2,13 @@ import { registry } from '../registry.js';
 import { writeExportFile } from '../utils/exportUtils.js';
 import { maybeStoreResult } from '../utils/resultUtils.js';
 
+// Every action here builds on this data, so a failed reply must not look like a page with no API calls.
 function dataOf(response) {
+  if (response?.ok === false) {
+    const error = new Error(response.error?.message ?? 'The extension reported a failure.');
+    error.code = response.error?.code;
+    throw error;
+  }
   return response?.data ?? response;
 }
 
@@ -21,7 +27,16 @@ function toCurl(request) {
 const tools = [
   {
     name: 'fileforge_api_action',
-    description: 'Discover and export REST and GraphQL API calls.',
+    actions: [
+      { action: 'discover', description: 'List the API calls captured in a tab, grouped by path, method or status and by domain. Stores the result by default.', required: [] },
+      { action: 'get_graphql_operations', description: 'List the GraphQL requests captured in a tab. Stores the result by default.', required: [] },
+      { action: 'find_openapi_specs', description: "Send HEAD requests to common OpenAPI and Swagger paths on the tab's origin and list the ones found.", required: [] },
+      { action: 'export_curl', description: 'Write the captured API calls to a shell file as curl commands.', required: [] },
+      { action: 'export_postman', description: 'Write the captured API calls to a Postman collection file.', required: [] },
+      { action: 'generate_msw_mocks', description: 'Write the captured API calls to a file of MSW mock handlers.', required: [] },
+    ],
+    description: 'Work with the API calls a page makes: discover REST and GraphQL requests, find OpenAPI specs, and export them as curl, Postman or MSW mocks. Reads a running DevTools session, so call start_session on fileforge_devtools_action first or results are empty. Exports replace a file of the same name and can include captured auth headers, so review them before sharing. Needs the extension.',
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     inputSchema: {
       type: 'object',
       properties: {
@@ -31,14 +46,11 @@ const tools = [
             'discover', 'get_graphql_operations', 'find_openapi_specs', 
             'export_curl', 'export_postman', 'generate_msw_mocks'
           ],
-          description: 'The API action to perform.'
         },
         tabId: { type: 'string', default: 'active' },
         groupBy: { type: 'string', enum: ['route', 'method', 'status'], default: 'route' },
         includeBodies: { type: 'boolean', default: false },
-        export: { type: 'array', items: { type: 'string', enum: ['markdown', 'postman', 'msw'] } },
         store: { type: 'boolean', default: true },
-        filter: { type: 'object' },
         filename: { type: 'string' }
       },
       required: ['action']
@@ -97,6 +109,7 @@ const tools = [
             for (const path of candidates) {
               const url = new URL(path, origin).toString();
               try {
+                // The origin is the open tab's, which the browser can already reach, and only fixed paths are probed.
                 const response = await fetch(url, { method: 'HEAD' });
                 if (response.ok) found.push({ url, status: response.status, contentType: response.headers.get('content-type') });
               } catch (_) {}

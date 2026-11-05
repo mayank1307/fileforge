@@ -320,7 +320,20 @@ function resolveBrowserContextQuery(rawData, query) {
 const tools = [
   {
     name: 'fileforge_browser_action',
-    description: 'Control browser tabs and read browser state. Use query_context to read state; navigate/history/wait for tab control.',
+    actions: [
+      { action: 'navigate', description: 'Go to a URL in a tab, or in a new tab with newTab.', required: ['url'] },
+      { action: 'open_url_with_capture', description: 'Open a URL with capture on and return what it loaded. Closes the tab afterwards unless keepOpen is set, and stores the result by default.', required: ['url'] },
+      { action: 'activate_tab', description: 'Switch to a tab.', required: ['tabId'] },
+      { action: 'close_tab', description: 'Close a tab. Unsaved work in it is lost.', required: ['tabId'] },
+      { action: 'reload_tab', description: 'Reload a tab, optionally bypassing the cache.', required: [] },
+      { action: 'history', description: 'Go back or forward in a tab. Goes back unless direction says otherwise.', required: [] },
+      { action: 'wait', description: 'Wait until a tab reaches until: load (the default), idle, or url, which also needs urlIncludes.', required: [] },
+      { action: 'query_context', description: 'Read open tabs, windows and the active tab, using a preset or a query. Changes nothing.', required: [] },
+      { action: 'close_tabs_matching', description: 'Close tabs matching urlIncludes or titleIncludes. Use dryRun to preview; keepActiveTab is on by default.', required: [] },
+    ],
+    normalizeAction: normalizeActionName,
+    description: 'Manage tabs and read browser state: go to a URL, switch, reload and close tabs, move through history, wait for a page, and list open tabs. Use query_context to see what\'s open, and fileforge_page_interaction to act inside a page. Closing tabs can lose unsaved work, and close_tabs_matching can close many at once, so try dryRun first. Sensitive tab URLs are redacted. Needs the extension.',
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
     inputSchema: {
       type: 'object',
       properties: {
@@ -332,7 +345,6 @@ const tools = [
             'history', 'wait',
             'query_context', 'close_tabs_matching',
           ],
-          description: 'The browser action to perform.',
         },
 
         // ── query_context ──────────────────────────────────────────────────

@@ -40,7 +40,8 @@ const a11yCapabilities = {
 const tools = [
   {
     name: 'fileforge_a11y_action',
-    description: 'Run accessibility audits and checks.',
+    description: 'Check one page\'s accessibility: run an audit, read the accessibility tree, and check keyboard navigation and color contrast. Use this for focused accessibility work, and fileforge_audit_action for a wider audit. Doesn\'t change the page; results can be stored locally. Needs the extension.',
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     capabilities: a11yCapabilities,
     inputSchema: {
       type: 'object',
@@ -48,7 +49,6 @@ const tools = [
         action: {
           type: 'string',
           enum: ['audit', 'get_tree', 'check_keyboard', 'check_contrast'],
-          description: 'The accessibility action to perform.'
         },
         tabId: { type: 'string', default: 'active' },
         standard: { type: 'string', enum: ['wcag2a', 'wcag2aa', 'wcag21aa'], default: 'wcag2aa' },
